@@ -8,7 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # === Налаштування ===
 BOT_TOKEN = '7760087730:AAGcL8oADjz5VG2EDiFNuJ5taRZZKAvB1nw'
-GOOGLE_SHEET_NAME = 'Дані замовлень'
+GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 COST_PRICE = 80
 FREE_DELIVERY_THRESHOLD = 500
