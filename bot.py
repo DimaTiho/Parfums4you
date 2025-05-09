@@ -131,9 +131,9 @@ async def get_delivery_method(message: types.Message):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
-        InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr"),
-        InlineKeyboardButton("🏠 Адресна доставка", callback_data="address")
+        InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr")
     )
+    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="address"))
     )
     await message.answer("Оберіть тип доставки:", reply_markup=kb)
 
