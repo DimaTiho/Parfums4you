@@ -13,7 +13,7 @@ GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 COST_PRICE = 80
 FREE_DELIVERY_THRESHOLD = 500
-DELIVERY_COST = 50
+DELIVERY_COST = 70
 
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -64,6 +64,28 @@ user_data = {}
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
+    photo_url = "https://example.com/welcome_parfum.jpg"  # 🔁 Замінити на справжню URL картинку
+    caption = (
+        "🌸 Вітаємо в нашому ароматному боті!
+"
+        "Тут ви знайдете великий вибір парфумів 🧴 на будь-який смак,
+"
+        "вигідні ціни та приємні знижки.
+
+"
+        "📌 Щоб почати — скористайтеся кнопками нижче."
+    )
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
+        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
+    )
+    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
+    await message.answer_photo(photo=photo_url, caption=caption, reply_markup=kb)
+
+
+@dp.message_handler(commands=['start_old'])
+async def start_old(message: types.Message):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
@@ -114,7 +136,8 @@ async def get_phone(message: types.Message):
         await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
         return
     user_data[message.from_user.id]["name"] = message.text
-    await message.answer("Номер телефону:")
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Номер телефону:", reply_markup=kb)
 
 @dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}))
 async def get_city(message: types.Message):
@@ -122,7 +145,8 @@ async def get_city(message: types.Message):
         await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
         return
     user_data[message.from_user.id]["phone"] = message.text
-    await message.answer("🏙 Введіть місто, куди буде здійснена доставка:")
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("🏙 Введіть місто, куди буде здійснена доставка:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data in ["delivery_address", "delivery_np"])
 async def ask_for_address(call: types.CallbackQuery):
@@ -143,6 +167,7 @@ async def get_delivery_method(message: types.Message):
         InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr")
     )
     kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="address"))
+    kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("Оберіть тип доставки:", reply_markup=kb)
 
 
@@ -166,6 +191,9 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         f"{data['address']}" )
     order_summary = (
     f"🔍 Підтвердження замовлення:\n"
+    f"Ім'я: {data['name']}\n"
+    f"Телефон: {data['phone']}\n"
+    f"Адреса: {address_full}"
     f"Аромат: {data['perfume']}\n"
     f"Кількість: {quantity} шт\n"
     f"Ціна за одиницю: {price} грн\n"
@@ -173,9 +201,7 @@ async def confirm_order_prompt(call: types.CallbackQuery):
     f"Сума: {subtotal} грн\n"
     f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}\n"
     f"Загальна сума: {total} грн\n"
-    f"Ім'я: {data['name']}\n"
-    f"Телефон: {data['phone']}\n"
-    f"Адреса: {address_full}"
+    
 )
 
     kb = InlineKeyboardMarkup(row_width=2)
@@ -234,7 +260,8 @@ async def get_quantity(message: types.Message):
         await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
         return
     user_data[message.from_user.id]["address"] = message.text
-    await message.answer("Кількість (шт):")
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Кількість (шт):", reply_markup=kb)
 
 @dp.message_handler(lambda m: "quantity" not in user_data.get(m.from_user.id, {}))
 async def get_promotion(message: types.Message):
@@ -249,6 +276,7 @@ async def get_promotion(message: types.Message):
     buttons = [InlineKeyboardButton(promo, callback_data=f"promo_{promo}") for promo in promotions]
     for i in range(0, len(buttons), 2):
         kb.row(*buttons[i:i+2])
+    kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("Обери акцію:", reply_markup=kb)
 
 
