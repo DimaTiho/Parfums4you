@@ -13,7 +13,7 @@ GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 COST_PRICE = 80
 FREE_DELIVERY_THRESHOLD = 500
-DELIVERY_COST = 70
+DELIVERY_COST = 50
 
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -68,7 +68,7 @@ async def start(message: types.Message):
     caption = (
         "🌸 Вітаємо в нашому ароматному боті!"
         "Тут ви знайдете великий вибір парфумів 🧴 на будь-який смак,"
-        "вигідні ціни та приємні знижки.
+        "вигідні ціни та приємні знижки."
 "
         "📌 Щоб почати — скористайтеся кнопками нижче."
     )
