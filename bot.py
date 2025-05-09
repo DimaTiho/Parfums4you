@@ -7,7 +7,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # === Налаштування ===
-BOT_TOKEN = '7760087730:AAGcL8oADjz5VG2EDiFNuJ5taRZZKAvB1nw'
+BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 COST_PRICE = 80
