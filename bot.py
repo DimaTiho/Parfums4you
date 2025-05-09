@@ -71,7 +71,6 @@ async def start(message: types.Message):
     "🎁 Щоденні акції, приємні подарунки та безкоштовна доставка при замовленні від 500 грн!\n\n"
     "🛒 Натисніть /start, щоб почати вибір аромату або дізнатися про акції."
 )
-await message.answer_photo(photo=photo_url, caption=caption, parse_mode="Markdown")
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
