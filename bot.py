@@ -169,8 +169,6 @@ async def confirm_order_prompt(call: types.CallbackQuery):
     f"Адреса: {address_full}"
 )
 
-   
-    )
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("✅ Так, підтверджую", callback_data="confirm_final"),
