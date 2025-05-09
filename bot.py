@@ -134,8 +134,58 @@ async def get_delivery_method(message: types.Message):
         InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr")
     )
     kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="address"))
-    )
     await message.answer("Оберіть тип доставки:", reply_markup=kb)
+
+
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_"))
+async def confirm_order_prompt(call: types.CallbackQuery):
+    uid = call.from_user.id
+    promo_key = call.data[6:]
+    user_data[uid]["promotion"] = promo_key
+    data = user_data[uid]
+    price = perfume_prices[data["perfume"]]
+    quantity = data["quantity"]
+    discount = promotions[promo_key]["discount"]
+    subtotal = max(0, price * quantity - discount * quantity)
+    delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    total = subtotal + delivery_fee
+    address_full = f"м. {data['city']}, " + (
+        f"НП {data['address']}" if data['delivery_type'] == "np" else 
+        f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
+        f"{data['address']}" )
+    order_summary = (
+        f"🔍 Підтвердження замовлення:
+"
+        f"Аромат: {data['perfume']}
+"
+        f"Кількість: {quantity} шт
+"
+        f"Ціна за одиницю: {price} грн
+"
+        f"Акція: {promo_key} (-{discount} грн/шт)
+"
+        f"Сума: {subtotal} грн
+"
+        f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}
+"
+        f"Загальна сума: {total} грн
+"
+        f"Ім'я: {data['name']}
+"
+        f"Телефон: {data['phone']}
+"
+        f"Адреса: {address_full}"
+    )
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("✅ Так, підтверджую", callback_data="confirm_final"),
+        InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
+    )
+    await call.message.answer(order_summary + "
+
+Будь ласка, підтвердіть замовлення:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "confirm_final")
 async def finalize_order(call: types.CallbackQuery):
@@ -155,7 +205,7 @@ async def finalize_order(call: types.CallbackQuery):
         f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
         f"{data['address']}" ), data['perfume'], quantity,
         data['promotion'], total, profit, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        uid, ""
+        uid, "", "✅ Відправлено"
     ])
     analytics_sheet.update("B2", f"=COUNTA({sheet.title}!A2:A)")
     analytics_sheet.update("B3", f"=SUM({sheet.title}!G2:G)")
@@ -165,6 +215,10 @@ async def finalize_order(call: types.CallbackQuery):
     await call.message.answer("✅ Замовлення прийнято! Очікуйте на дзвінок або SMS.")
     del user_data[uid]
 
+@dp.callback_query_handler(lambda c: c.data == "cancel_order")
+async def cancel_order(call: types.CallbackQuery):
+    await call.message.answer("❌ Замовлення скасовано. Ви можете почати знову, натиснувши /start")
+    user_data.pop(call.from_user.id, None)
 
 @dp.callback_query_handler(lambda c: c.data in ["np", "ukr", "address"])
 async def get_final_address(call: types.CallbackQuery):
@@ -187,7 +241,7 @@ async def get_promotion(message: types.Message):
         await message.answer("Введи кількість числом!")
         return
     user_data[message.from_user.id]["quantity"] = int(message.text)
-    kb = InlineKeyboardMarkup()
+    kb = InlineKeyboardMarkup(row_width=2)
     buttons = [InlineKeyboardButton(promo, callback_data=f"promo_{promo}") for promo in promotions]
     for i in range(0, len(buttons), 2):
         kb.row(*buttons[i:i+2])
