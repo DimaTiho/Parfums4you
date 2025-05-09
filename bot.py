@@ -123,8 +123,7 @@ async def ask_for_address(call: types.CallbackQuery):
     method = "Адресна доставка" if call.data == "delivery_address" else "Нова Пошта"
     user_data[call.from_user.id]["delivery_method"] = method
     note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
-    await call.message.answer(note + "
-‼️ Перевірте уважно правильність даних перед підтвердженням.")
+    await call.message.answer(note + "‼️ Перевірте уважно правильність даних перед підтвердженням.")
 
 @dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}))
 async def get_delivery_method(message: types.Message):
@@ -172,12 +171,10 @@ async def get_final_address(call: types.CallbackQuery):
     delivery_type = call.data
     user_data[call.from_user.id]["delivery_type"] = delivery_type
     if delivery_type == "address":
-        await call.message.answer("✍️ Введіть повну адресу доставки.
-‼️ Перевірте уважно перед підтвердженням!")
+        await call.message.answer("✍️ Введіть повну адресу доставки.‼️ Перевірте уважно перед підтвердженням!")
     else:
         label = "Номер відділення Нової Пошти:" if delivery_type == "np" else "Номер відділення Укрпошти:"
-        await call.message.answer(f"✍️ {label}
-‼️ Перевірте уважно перед підтвердженням!")
+        await call.message.answer(f"✍️ {label}‼️ Перевірте уважно перед підтвердженням!")
 
 @dp.message_handler(lambda m: "address" not in user_data.get(m.from_user.id, {}))
 async def get_quantity(message: types.Message):
