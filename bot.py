@@ -64,11 +64,12 @@ user_data = {}
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    photo_url = "https://example.com/welcome_parfum.jpg"  # 🔁 Замінити на справжню URL картинку
+    photo_url = "https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg"  # 🔁 Замінити на справжню URL картинку
     caption = (
         "🌸 Вітаємо в нашому ароматному боті!"
         "Тут ви знайдете великий вибір парфумів 🧴 на будь-який смак,"
-        "Вигідні ціни та приємні знижки."
+        "вигідні ціни та приємні знижки.
+"
         "📌 Щоб почати — скористайтеся кнопками нижче."
     )
     kb = InlineKeyboardMarkup(row_width=2)
@@ -128,9 +129,7 @@ async def get_name(call: types.CallbackQuery):
 
 @dp.message_handler(lambda m: "name" not in user_data.get(m.from_user.id, {}))
 async def get_phone(message: types.Message):
-    if message.from_user.id not in user_data:
-        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
-        return
+    
     user_data[message.from_user.id]["name"] = message.text
     kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("Номер телефону:", reply_markup=kb)
