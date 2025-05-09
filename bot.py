@@ -110,11 +110,17 @@ async def get_name(call: types.CallbackQuery):
 
 @dp.message_handler(lambda m: "name" not in user_data.get(m.from_user.id, {}))
 async def get_phone(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
     user_data[message.from_user.id]["name"] = message.text
     await message.answer("Номер телефону:")
 
 @dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}))
 async def get_city(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
     user_data[message.from_user.id]["phone"] = message.text
     await message.answer("🏙 Введіть місто, куди буде здійснена доставка:")
 
@@ -127,6 +133,9 @@ async def ask_for_address(call: types.CallbackQuery):
 
 @dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}))
 async def get_delivery_method(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
     user_data[message.from_user.id]["city"] = message.text
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -221,11 +230,17 @@ async def get_final_address(call: types.CallbackQuery):
 
 @dp.message_handler(lambda m: "address" not in user_data.get(m.from_user.id, {}))
 async def get_quantity(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
     user_data[message.from_user.id]["address"] = message.text
     await message.answer("Кількість (шт):")
 
 @dp.message_handler(lambda m: "quantity" not in user_data.get(m.from_user.id, {}))
 async def get_promotion(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
     if not message.text.isdigit():
         await message.answer("Введи кількість числом!")
         return
