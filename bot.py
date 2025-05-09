@@ -156,7 +156,7 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
         f"{data['address']}" )
     order_summary = (
-        f"🔍 Підтвердження замовлення:
+        f"🔍 Підтвердження замовлення\n:
 "
         f"Аромат: {data['perfume']}
 "
