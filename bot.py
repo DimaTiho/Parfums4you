@@ -156,26 +156,16 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
         f"{data['address']}" )
     order_summary = (
-        f"🔍 Підтвердження замовлення\n:
-"
-        f"Аромат: {data['perfume']}
-"
-        f"Кількість: {quantity} шт
-"
-        f"Ціна за одиницю: {price} грн
-"
-        f"Акція: {promo_key} (-{discount} грн/шт)
-"
-        f"Сума: {subtotal} грн
-"
-        f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}
-"
-        f"Загальна сума: {total} грн
-"
-        f"Ім'я: {data['name']}
-"
-        f"Телефон: {data['phone']}
-"
+        f"🔍 Підтвердження замовлення\n:"
+        f"Аромат: {data['perfume']}"
+        f"Кількість: {quantity} шт"
+        f"Ціна за одиницю: {price} грн"
+        f"Акція: {promo_key} (-{discount} грн/шт)"
+        f"Сума: {subtotal} грн"
+        f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}"
+        f"Загальна сума: {total} грн"
+        f"Ім'я: {data['name']}"
+        f"Телефон: {data['phone']}"
         f"Адреса: {address_full}"
     )
     kb = InlineKeyboardMarkup(row_width=2)
