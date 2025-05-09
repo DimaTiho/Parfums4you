@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.utils import executor
 from datetime import datetime
+import asyncio
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -18,7 +19,17 @@ DELIVERY_COST = 50
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
 client = gspread.authorize(creds)
-sheet = client.open(GOOGLE_SHEET_NAME).sheet1
+workbook = client.open(GOOGLE_SHEET_NAME)
+sheet = workbook.sheet1
+try:
+    analytics_sheet = workbook.worksheet("Аналітика")
+except:
+    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
+    analytics_sheet.update("A1", [["Показник", "Значення"],
+                                   ["Усього замовлень", ""],
+                                   ["Загальна сума", ""],
+                                   ["Загальний прибуток", ""],
+                                   ["Найпопулярніший аромат", ""]])
 
 # === Дані ===
 perfumes = {
@@ -56,9 +67,9 @@ async def start(message: types.Message):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
-        InlineKeyboardButton("🔥 Акції", callback_data="promotions"),
-        InlineKeyboardButton("📝 Замовити", callback_data="order")
+        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
     )
+    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
     await message.answer("🌿 Вітаємо! Натхнення у кожному ароматі.", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "show_perfumes")
@@ -85,7 +96,7 @@ async def show_promotions(call: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "order")
 async def start_order(call: types.CallbackQuery):
     user_data[call.from_user.id] = {}
-    kb = InlineKeyboardMarkup()
+    kb = InlineKeyboardMarkup(row_width=2)
     for cat in perfumes.values():
         for p in cat:
             kb.add(InlineKeyboardButton(p['name'], callback_data=f"choose_{p['name']}"))
@@ -103,9 +114,70 @@ async def get_phone(message: types.Message):
     await message.answer("Номер телефону:")
 
 @dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}))
-async def get_address(message: types.Message):
+async def get_city(message: types.Message):
     user_data[message.from_user.id]["phone"] = message.text
-    await message.answer("Адреса доставки (або відділення НП):")
+    await message.answer("🏙 Введіть місто, куди буде здійснена доставка:")
+
+@dp.callback_query_handler(lambda c: c.data in ["delivery_address", "delivery_np"])
+async def ask_for_address(call: types.CallbackQuery):
+    method = "Адресна доставка" if call.data == "delivery_address" else "Нова Пошта"
+    user_data[call.from_user.id]["delivery_method"] = method
+    note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
+    await call.message.answer(note + "
+‼️ Перевірте уважно правильність даних перед підтвердженням.")
+
+@dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}))
+async def get_delivery_method(message: types.Message):
+    user_data[message.from_user.id]["city"] = message.text
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
+        InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr"),
+        InlineKeyboardButton("🏠 Адресна доставка", callback_data="address")
+    )
+    )
+    await message.answer("Оберіть тип доставки:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data == "confirm_final")
+async def finalize_order(call: types.CallbackQuery):
+    uid = call.from_user.id
+    data = user_data[uid]
+    price = perfume_prices[data["perfume"]]
+    quantity = data["quantity"]
+    discount = promotions[data["promotion"]]["discount"]
+    subtotal = max(0, price * quantity - discount * quantity)
+    delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    total = subtotal + delivery_fee
+    profit = total - (COST_PRICE * quantity)
+
+    sheet.append_row([
+        data['name'], data['phone'], f"м. {data['city']}, " + (
+        f"НП {data['address']}" if data['delivery_type'] == "np" else 
+        f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
+        f"{data['address']}" ), data['perfume'], quantity,
+        data['promotion'], total, profit, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        uid, ""
+    ])
+    analytics_sheet.update("B2", f"=COUNTA({sheet.title}!A2:A)")
+    analytics_sheet.update("B3", f"=SUM({sheet.title}!G2:G)")
+    analytics_sheet.update("B4", f"=SUM({sheet.title}!H2:H)")
+    analytics_sheet.update("B5", f"=INDEX({sheet.title}!D2:D, MODE(MATCH({sheet.title}!D2:D, {sheet.title}!D2:D, 0)))")
+
+    await call.message.answer("✅ Замовлення прийнято! Очікуйте на дзвінок або SMS.")
+    del user_data[uid]
+
+
+@dp.callback_query_handler(lambda c: c.data in ["np", "ukr", "address"])
+async def get_final_address(call: types.CallbackQuery):
+    delivery_type = call.data
+    user_data[call.from_user.id]["delivery_type"] = delivery_type
+    if delivery_type == "address":
+        await call.message.answer("✍️ Введіть повну адресу доставки.
+‼️ Перевірте уважно перед підтвердженням!")
+    else:
+        label = "Номер відділення Нової Пошти:" if delivery_type == "np" else "Номер відділення Укрпошти:"
+        await call.message.answer(f"✍️ {label}
+‼️ Перевірте уважно перед підтвердженням!")
 
 @dp.message_handler(lambda m: "address" not in user_data.get(m.from_user.id, {}))
 async def get_quantity(message: types.Message):
@@ -119,44 +191,33 @@ async def get_promotion(message: types.Message):
         return
     user_data[message.from_user.id]["quantity"] = int(message.text)
     kb = InlineKeyboardMarkup()
-    for promo in promotions:
-        kb.add(InlineKeyboardButton(promo, callback_data=f"promo_{promo}"))
+    buttons = [InlineKeyboardButton(promo, callback_data=f"promo_{promo}") for promo in promotions]
+    for i in range(0, len(buttons), 2):
+        kb.row(*buttons[i:i+2])
     await message.answer("Обери акцію:", reply_markup=kb)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_"))
-async def confirm_order(call: types.CallbackQuery):
-    uid = call.from_user.id
-    promo_key = call.data[6:]
-    data = user_data[uid]
-    data["promotion"] = promo_key
-    price = perfume_prices[data["perfume"]]
-    quantity = data["quantity"]
-    discount = promotions[promo_key]["discount"]
-    subtotal = max(0, price * quantity - discount * quantity)
 
-    delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
-    total = subtotal + delivery_fee
-    profit = total - (COST_PRICE * quantity)
 
-    order_summary = (
-        f"Підтвердження замовлення:\n"
-        f"Аромат: {data['perfume']}\n"
-        f"Кількість: {quantity}\n"
-        f"Ціна за одиницю: {price} грн\n"
-        f"Акція: {promo_key} (-{discount} грн/шт)\n"
-        f"Сума: {subtotal} грн\n"
-        f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}\n"
-        f"Загальна сума: {total} грн\n"
-        f"Ім'я: {data['name']}\n"
-        f"Телефон: {data['phone']}\n"
-        f"Адреса: {data['address']}"
-    )
-    sheet.append_row([
-        data['name'], data['phone'], data['address'], data['perfume'], quantity,
-        promo_key, total, profit, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ])
-    await call.message.answer(order_summary + "\n\n✅ Замовлення прийнято! Очікуйте на дзвінок або SMS.")
-    del user_data[uid]
+async def notify_sent_orders():
+    while True:
+        await asyncio.sleep(60)  # Перевіряти щохвилини
+        rows = sheet.get_all_values()
+        header = rows[0]
+        if "ЕН" in header:
+            en_index = header.index("ЕН")
+            chat_index = header.index("Chat ID")
+            status_index = header.index("Статус") if "Статус" in header else None
+            for i, row in enumerate(rows[1:], start=2):
+                if len(row) > en_index and row[en_index] and (len(row) <= chat_index or not row[chat_index].startswith("✅")):
+                    try:
+                        chat_id = int(row[chat_index])
+                        tn_number = row[en_index]
+                        await bot.send_message(chat_id, f"📦 Ваше замовлення відправлено!")
+                        sheet.update_cell(i, chat_index + 1, f"✅ {tn_number}")
+                    except Exception as e:
+                        logging.warning(f"Не вдалося надіслати повідомлення: {e}")
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    loop = asyncio.get_event_loop()
+    loop.create_task(notify_sent_orders())
+    executor.start_polling(dp, skip_updates=True, loop=loop)
