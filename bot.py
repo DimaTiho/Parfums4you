@@ -61,7 +61,7 @@ perfumes = {
 perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
 
 
-        await call.message.answer_photo(photo=photo, caption=text, reply_markup=keyboard)
+    await call.message.answer_photo(photo=photo, caption=text, reply_markup=keyboard)
 
 promotions = {
     "1+1=Подарунок": {"description": "Купи 2 — третій у подарунок", "discount": 66.67},
