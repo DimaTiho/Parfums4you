@@ -35,6 +35,28 @@ except:
 perfumes = {
     "Жіночі": [
         {"name": "Chanel Chance", "photo": "https://example.com/chanel.jpg"},
+        {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"},
+        {"name": "Lancôme La Vie Est Belle", "photo": "https://example.com/lviebelle.jpg"},
+        {"name": "YSL Mon Paris", "photo": "https://example.com/monparis.jpg"}
+    ],
+    "Чоловічі": [
+        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
+        {"name": "Versace Eros", "photo": "https://example.com/eros.jpg"},
+        {"name": "Bleu de Chanel", "photo": "https://example.com/bleu.jpg"},
+        {"name": "Paco Rabanne Invictus", "photo": "https://example.com/invictus.jpg"}
+    ],
+    "Унісекс": [
+        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"},
+        {"name": "Creed Aventus", "photo": "https://example.com/aventus.jpg"},
+        {"name": "Molecule 01", "photo": "https://example.com/molecule.jpg"},
+        {"name": "Byredo Gypsy Water", "photo": "https://example.com/gypsy.jpg"}
+    ],
+    "ТОП продаж": [
+        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
+        {"name": "Chanel Chance", "photo": "https://example.com/chanel.jpg"},
+        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"}
+    ]
+},
         {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"}
     ],
     "Чоловічі": [
