@@ -313,6 +313,7 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         discount_value = 20
     elif promo_key == "Таємне слово":
         discount_value = 15
+      
       discounted_total = max(0, subtotal - discount_value)
 
     # Доставка
