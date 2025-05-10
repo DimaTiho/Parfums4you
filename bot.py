@@ -75,11 +75,9 @@ async def welcome(message: types.Message):
         InlineKeyboardButton("ℹ Як замовити?", callback_data="how_to_order"),
         InlineKeyboardButton("📨 Зв'язок з менеджером", url="https://t.me/your_manager_username")
     )
-    await message.answer(
-    "🌸 Вітаємо у світі ароматів!\n"
-    "Обирайте найкраще та замовляйте зручно:",
-    reply_markup=keyboard
-    )
+    await message.answer("🌸 Вітаємо у світі ароматів!\nОбирайте найкраще та замовляйте зручно:", reply_markup=keyboard)
+Обирайте найкраще та замовляйте зручно:", reply_markup=keyboard)
+
 
 @dp.callback_query_handler(lambda c: c.data == "show_promotions")
 async def show_promotions(call: types.CallbackQuery):
