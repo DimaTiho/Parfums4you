@@ -60,18 +60,7 @@ perfumes = {
         
 perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
 
-@dp.callback_query_handler(lambda c: c.data in perfumes)
-async def show_perfume_by_category(call: types.CallbackQuery):
-    category = call.data
-    for perfume in perfumes[category]:
-        name = perfume["name"]
-        photo = perfume["photo"]
-        price = perfume_prices.get(name, 200)
-        text = f"💎 {name}\n💰 Ціна: {price} грн"
-        keyboard = InlineKeyboardMarkup(row_width=2).add(
-            InlineKeyboardButton("➕ До кошика", callback_data=f"add_{name}"),
-            InlineKeyboardButton("🔙 Назад", callback_data="back_to_catalog")
-        )
+
         await call.message.answer_photo(photo=photo, caption=text, reply_markup=keyboard)
 
 promotions = {
@@ -88,6 +77,18 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 user_data = {}
 
+@dp.callback_query_handler(lambda c: c.data in perfumes)
+async def show_perfume_by_category(call: types.CallbackQuery):
+    category = call.data
+    for perfume in perfumes[category]:
+        name = perfume["name"]
+        photo = perfume["photo"]
+        price = perfume_prices.get(name, 200)
+        text = f"💎 {name}\n💰 Ціна: {price} грн"
+        keyboard = InlineKeyboardMarkup(row_width=2).add(
+            InlineKeyboardButton("➕ До кошика", callback_data=f"add_{name}"),
+            InlineKeyboardButton("🔙 Назад", callback_data="back_to_catalog")
+        )
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     photo_url = "https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg"
