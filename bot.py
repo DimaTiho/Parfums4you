@@ -226,8 +226,8 @@ async def save_quantity_to_cart(message: types.Message):
     )
     kb.add(InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"))
     await message.answer("Оберіть наступну дію:", reply_markup=kb)
-
-    @dp.callback_query_handler(lambda c: c.data == "checkout")
+  
+@dp.callback_query_handler(lambda c: c.data == "checkout")
 async def start_checkout(call: types.CallbackQuery):
     uid = call.from_user.id
     if "cart" not in user_data.get(uid, {}):
