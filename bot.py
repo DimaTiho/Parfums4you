@@ -374,7 +374,7 @@ async def finalize_order(call: types.CallbackQuery):
     analytics_sheet.update("B4", f"=SUM({sheet.title}!H2:H)")
     analytics_sheet.update("B5", f"=INDEX({sheet.title}!D2:D, MODE(MATCH({sheet.title}!D2:D, {sheet.title}!D2:D, 0)))")
 
-    await call.message.answer("✅ Замовлення прийнято! Очікуйте на дзвінок або SMS."reply_markup=kb)
+    await call.message.answer("✅ Замовлення прийнято! Очікуйте на дзвінок або SMS.",reply_markup=kb)
     user_data.pop(uid, None)
                               
 async def notify_sent_orders():
