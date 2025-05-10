@@ -297,26 +297,39 @@ async def confirm_order_prompt(call: types.CallbackQuery):
     address_note = ""
     if method == "Нова Пошта":
         address_note = f"НП: {address}"
-    elif method == "Укрпошта":
+        elif method == "Укрпошта":
         address_note = f"Укрпошта: {address}"
     elif method == "Адресна доставка":
-        address_note = f"Адреса: {address}"
+        address_note = f"Адресна доставка: {address}"
 
-    order_summary = (
-        f"🔍 *Підтвердження замовлення:*\n\n"
-        f"👤 Ім'я: {data.get('name')}\n"
-        f"📞 Телефон: {data.get('phone')}\n"
-        f"🏙 Доставка: {method} — {address_note}\n\n"
-        f"🛍 Товари:\n" + "\n".join(summary_lines) + "\n\n"
-        f"🚚 Доставка: {delivery_fee} грн\n"
-        f"💰 *Сума до сплати:* {total:.2f} грн"
+    summary = "\n".join(summary_lines)
+    order_text = (
+        f"🧾 *Підсумок замовлення:*\n"
+        f"{summary}\n"
+        f"📦 Доставка: {method} ({delivery_fee} грн)\n"
+        f"🏷️ Акція: {promo_key} (-{discount} грн/од.)\n"
+        f"💰 *Сума до сплати:* {total:.2f} грн\n\n"
+        f"👤 Ім'я: {data.get('name', 'Невідомо')}\n"
+        f"📱 Телефон: {data.get('phone', 'Невідомо')}\n"
+        f"📍 Адреса: {address_note}"
     )
 
-    kb = InlineKeyboardMarkup().add(
-        InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"),
-        InlineKeyboardButton("🔙 Назад", callback_data="view_cart")
-    )
-    await call.message.answer(order_summary, parse_mode="Markdown", reply_markup=kb)
+    await call.message.answer(order_text, parse_mode="Markdown")
+
+    # Збереження до Google Sheets
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([
+        now,
+        data.get('name', ''),
+        data.get('phone', ''),
+        address_note,
+        ", ".join([f"{k}×{v}" for k, v in data["cart"].items()]),
+        promo_key,
+        total
+    ])
+
+    await call.message.answer("✅ Ваше замовлення збережено! Менеджер зв'яжеться з вами найближчим часом.")
+
 await call.message.answer(order_summary + "\n\nБудь ласка, підтвердіть замовлення:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "confirm_final")
