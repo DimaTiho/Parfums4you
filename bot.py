@@ -34,7 +34,29 @@ except:
 # === Дані ===
 perfumes = {
     "Жіночі": [
-        {"name": "Chanel Chance", "photo": "https://example.com/chanel.jpg"},
+        {"name": "Chanel Chance", "photo": "https://i.imgur.com/bW6XfZj.jpg"},
+        {"name": "Dior J'adore", "photo": "https://i.imgur.com/s3QvDOA.jpg"},
+        {"name": "Lancôme La Vie Est Belle", "photo": "https://i.imgur.com/k9cJjld.jpg"},
+        {"name": "YSL Mon Paris", "photo": "https://i.imgur.com/etRBLgh.jpg"}
+    ],
+    "Чоловічі": [
+        {"name": "Dior Sauvage", "photo": "https://i.imgur.com/Ek9Ek5F.jpg"},
+        {"name": "Versace Eros", "photo": "https://i.imgur.com/H7TjWq7.jpg"},
+        {"name": "Bleu de Chanel", "photo": "https://i.imgur.com/2dADtZf.jpg"},
+        {"name": "Paco Rabanne Invictus", "photo": "https://i.imgur.com/IHyWrhg.jpg"}
+    ],
+    "Унісекс": [
+        {"name": "Tom Ford Black Orchid", "photo": "https://i.imgur.com/0tBd1Yt.jpg"},
+        {"name": "Creed Aventus", "photo": "https://i.imgur.com/SSZZnvd.jpg"},
+        {"name": "Molecule 01", "photo": "https://i.imgur.com/MCthqN7.jpg"},
+        {"name": "Byredo Gypsy Water", "photo": "https://i.imgur.com/AvZ8MOT.jpg"}
+    ],
+    "ТОП продаж": [
+        {"name": "Dior Sauvage", "photo": "https://i.imgur.com/Ek9Ek5F.jpg"},
+        {"name": "Chanel Chance", "photo": "https://i.imgur.com/bW6XfZj.jpg"},
+        {"name": "Tom Ford Black Orchid", "photo": "https://i.imgur.com/0tBd1Yt.jpg"}
+    ]
+},
         {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"},
         {"name": "Lancôme La Vie Est Belle", "photo": "https://example.com/lviebelle.jpg"},
         {"name": "YSL Mon Paris", "photo": "https://example.com/monparis.jpg"}
