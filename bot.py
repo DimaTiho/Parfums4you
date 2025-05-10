@@ -364,8 +364,7 @@ async def finalize_order(call: types.CallbackQuery):
         data.get("total", 0)
     ])
         
-        total += total_amount
-
+       
     for row in full_rows:
         sheet.append_row(row)
 
