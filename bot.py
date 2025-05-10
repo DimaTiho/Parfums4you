@@ -417,8 +417,7 @@ async def view_cart(call: types.CallbackQuery):
     discount_key = user_data.get(uid, {}).get("promotion", "Без знижки")
     promo_desc = promotions.get(discount_key, {}).get("description", "Без акції")
 
-    lines.append(f"
-💰 Підсумок: {total} грн")
+    lines.append(f"💰 Підсумок: {total} грн")
     lines.append(delivery_note)
     lines.append(f"🎁 Акція/Бонус: {discount_key} ({promo_desc})")
 
