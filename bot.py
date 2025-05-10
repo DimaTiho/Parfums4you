@@ -284,6 +284,7 @@ async def confirm_order_prompt(call: types.CallbackQuery):
     uid = call.from_user.id
     promo_key = call.data[6:]
     data = user_data.get(uid, {})
+  
     if "cart" not in data or not data["cart"]:
         await call.message.answer("❗ Ваш кошик порожній.")
         return
@@ -299,9 +300,24 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         line_total = max(0, price * qty - discount * qty)
         subtotal += line_total
         summary_lines.append(f"{perfume} × {qty} = {line_total:.2f} грн")
+        subtotal += line_total
+    # Знижка
+    discount_value = 0
+    if promo_key == "1+1=Подарунок":
+        total_qty = sum(data["cart"].values())
+        free_items = total_qty // 3
+        discount_value = free_items * 200  # вартість одного аромату
+    elif promo_key == "Перший клієнт":
+        discount_value = subtotal * 0.10
+    elif promo_key == "Парфум дня":
+        discount_value = 20
+    elif promo_key == "Таємне слово":
+        discount_value = 15
+      discounted_total = max(0, subtotal - discount_value)
 
-    delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
-    total = subtotal + delivery_fee
+    # Доставка
+    delivery_fee = 0 if discounted_total >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    total_with_delivery = discounted_total + delivery_fee
 
     # Адреса
     method = data.get("delivery_method", "")
@@ -313,6 +329,15 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         address_note = f"Укрпошта: {address}"
     elif method == "Адресна доставка":
         address_note = f"Адреса: {address}"
+      
+    summary = "\n".join(summary_lines)
+    summary += f"\n\n💸 Сума: {subtotal} грн"
+    summary += f"\n🎁 Знижка: -{round(discount_value, 2)} грн"
+    if delivery_fee > 0:
+        summary += f"\n🚚 Доставка: {DELIVERY_COST} грн"
+    else:
+        summary += "\n🚚 Доставка: безкоштовно"
+    summary += f"\n\n✅ До сплати: {round(total_with_delivery, 2)} грн"
 
     order_summary = (
         f"🔍 *Підтвердження замовлення:*\n\n"
