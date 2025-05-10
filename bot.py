@@ -34,7 +34,29 @@ except:
 # === Дані ===
 perfumes = {
     "Жіночі": [
-        {"name": "Chanel Chance", "photo": "https://i.imgur.com/bW6XfZj.jpg"},
+        {"name": "Chanel Chance", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Dior J'adore", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Lancôme La Vie Est Belle", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "YSL Mon Paris", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+    ],
+    "Чоловічі": [
+        {"name": "Dior Sauvage", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Versace Eros", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Bleu de Chanel", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Paco Rabanne Invictus", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+    ],
+    "Унісекс": [
+        {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Creed Aventus", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Molecule 01", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Byredo Gypsy Water", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+    ],
+    "ТОП продаж": [
+        {"name": "Dior Sauvage", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Chanel Chance", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
+        {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+    ]
+},
         {"name": "Dior J'adore", "photo": "https://i.imgur.com/s3QvDOA.jpg"},
         {"name": "Lancôme La Vie Est Belle", "photo": "https://i.imgur.com/k9cJjld.jpg"},
         {"name": "YSL Mon Paris", "photo": "https://i.imgur.com/etRBLgh.jpg"}
