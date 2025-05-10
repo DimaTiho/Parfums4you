@@ -375,9 +375,6 @@ async def get_promotion(message: types.Message):
         kb.row(*buttons[i:i+2])
     kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("Обери акцію:", reply_markup=kb)
-
-
-
 async def notify_sent_orders():
     while True:
         await asyncio.sleep(60)  # Перевіряти щохвилини
@@ -396,7 +393,6 @@ async def notify_sent_orders():
                         sheet.update_cell(i, chat_index + 1, f"✅ {tn_number}")
                     except Exception as e:
                         logging.warning(f"Не вдалося надіслати повідомлення: {e}")
-
 @dp.callback_query_handler(lambda c: c.data == "view_cart")
 async def view_cart(call: types.CallbackQuery):
     uid = call.from_user.id
@@ -434,16 +430,12 @@ async def view_cart(call: types.CallbackQuery):
     )
     await call.message.answer("
 ".join(lines), parse_mode="Markdown", reply_markup=kb)
-
-
 @dp.callback_query_handler(lambda c: c.data == "clear_cart")
 async def clear_cart(call: types.CallbackQuery):
     uid = call.from_user.id
     if uid in user_data:
         user_data[uid]["cart"] = {}
     await call.message.answer("🧹 Кошик очищено.")
-
-
 @dp.callback_query_handler(lambda c: c.data == "start_checkout")
 async def start_checkout(call: types.CallbackQuery):
     uid = call.from_user.id
