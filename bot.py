@@ -227,8 +227,13 @@ async def save_quantity_to_cart(message: types.Message):
     kb.add(InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"))
     await message.answer("Оберіть наступну дію:", reply_markup=kb)
 
-    user_data[message.from_user.id]["name"] = message.text
-    user_data[call.from_user.id]["step"] = "get_name"
+    @dp.callback_query_handler(lambda c: c.data == "checkout")
+async def start_checkout(call: types.CallbackQuery):
+    uid = call.from_user.id
+    if "cart" not in user_data.get(uid, {}):
+        await call.message.answer("🛒 Ваш кошик порожній.")
+        return
+    user_data[uid]["step"] = "get_name"
     kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await call.message.answer("🧑 Введіть ваше ім'я:")
 
@@ -257,13 +262,11 @@ async def ask_for_address(call: types.CallbackQuery):
     note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
     await call.message.answer(note + "‼️ Перевірте уважно правильність даних перед підтвердженням.")
 
-@dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}))
-async def get_delivery_method(message: types.Message):
-    if message.from_user.id not in user_data:
-        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
-        return
-    user_data[message.from_user.id]["city"] = message.text
-    user_data[message.from_user.id]["step"] = None
+@dp.message_handler(lambda m: user_data.get(m.from_user.id, {}).get("step") == "get_city")
+async def get_city(message: types.Message):
+    uid = message.from_user.id
+    user_data[uid]["city"] = message.text
+    user_data[uid]["step"] = None  # або "get_delivery_method" якщо хочете уточнити
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
