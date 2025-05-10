@@ -60,6 +60,20 @@ perfumes = {
         
 perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
 
+@dp.callback_query_handler(lambda c: c.data in perfumes)
+async def show_perfume_by_category(call: types.CallbackQuery):
+    category = call.data
+    for perfume in perfumes[category]:
+        name = perfume["name"]
+        photo = perfume["photo"]
+        price = perfume_prices.get(name, 200)
+        text = f"💎 {name}\n💰 Ціна: {price} грн"
+        keyboard = InlineKeyboardMarkup(row_width=2).add(
+            InlineKeyboardButton("➕ До кошика", callback_data=f"add_{name}"),
+            InlineKeyboardButton("🔙 Назад", callback_data="back_to_catalog")
+        )
+        await call.message.answer_photo(photo=photo, caption=text, reply_markup=keyboard)
+
 promotions = {
     "1+1=Подарунок": {"description": "Купи 2 — третій у подарунок", "discount": 66.67},
     "Парфум дня": {"description": "-20 грн на обраний аромат", "discount": 20},
@@ -443,6 +457,26 @@ async def view_cart(call: types.CallbackQuery):
         InlineKeyboardButton("🏠 Головна", callback_data="start")
     )
     await call.message.answer("\n".join(lines), parse_mode="Markdown", reply_markup=kb)
+@dp.callback_query_handler(lambda c: c.data == "view_cart")
+async def view_cart(call: types.CallbackQuery):
+    uid = call.from_user.id
+    cart = user_data.get(uid, {}).get("cart", [])
+    if not cart:
+        await call.message.answer("🛒 Ваш кошик порожній.")
+        return
+
+    lines = ["🛍 Ваш кошик:"]
+    total = 0
+    for item in cart:
+        name = item['name']
+        quantity = item['quantity']
+        price = perfume_prices.get(name, 200)
+        subtotal = quantity * price
+        total += subtotal
+        lines.append(f"— {name} × {quantity} = {subtotal} грн")
+    lines.append(f"\n💰 Всього: {total} грн")
+
+    await call.message.answer("\n".join(lines))
 
 
 @dp.callback_query_handler(lambda c: c.data == "clear_cart")
