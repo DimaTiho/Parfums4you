@@ -1,127 +1,350 @@
-@dp.callback_query_handler(lambda c: c.data == "view_cart")
-async def view_cart(call: types.CallbackQuery):
-    uid = call.from_user.id
-    cart = user_data.get(uid, {}).get("cart", {})
-    if not cart:
-        await call.message.answer("🛒 Ваш кошик порожній.")
-        return
-    msg = "🛒 Ваш кошик:\n"
-    for i, (name, qty) in enumerate(cart.items(), 1):
-        msg += f"{i}. {name} × {qty} шт\n"
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from aiogram.utils import executor
+from datetime import datetime
+import asyncio
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# === Налаштування ===
+BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
+GOOGLE_SHEET_NAME = 'Parfums'
+CREDENTIALS_FILE = 'credentials.json'
+COST_PRICE = 80
+FREE_DELIVERY_THRESHOLD = 500
+DELIVERY_COST = 70
+
+# === Google Sheets ===
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+client = gspread.authorize(creds)
+workbook = client.open(GOOGLE_SHEET_NAME)
+sheet = workbook.sheet1
+try:
+    analytics_sheet = workbook.worksheet("Аналітика")
+except:
+    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
+    analytics_sheet.update("A1", [["Показник", "Значення"],
+                                   ["Усього замовлень", ""],
+                                   ["Загальна сума", ""],
+                                   ["Загальний прибуток", ""],
+                                   ["Найпопулярніший аромат", ""]])
+
+# === Дані ===
+perfumes = {
+    "Жіночі": [
+        {"name": "Chanel Chance", "photo": "https://example.com/chanel.jpg"},
+        {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"}
+    ],
+    "Чоловічі": [
+        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
+        {"name": "Versace Eros", "photo": "https://example.com/eros.jpg"}
+    ],
+    "Унісекс": [
+        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"},
+        {"name": "Creed Aventus", "photo": "https://example.com/aventus.jpg"}
+    ]
+}
+perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
+
+promotions = {
+    "1+1=Подарунок": {"description": "Купи 2 — третій у подарунок", "discount": 66.67},
+    "Парфум дня": {"description": "-20 грн на обраний аромат", "discount": 20},
+    "Перший клієнт": {"description": "10% знижка на перше замовлення", "discount": 20},
+    "Таємне слово": {"description": "Назви слово 'АРОМАТ' — знижка 15 грн", "discount": 15},
+    "Без знижки": {"description": "Без акцій", "discount": 0},
+}
+
+# === Бот ===
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
+user_data = {}
+
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    photo_url = "https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg"
+    caption = (
+        "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
+        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
+        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
+        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
+        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
+    )
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("✏️ Змінити кількість", callback_data="edit_cart"),
-        InlineKeyboardButton("❌ Очистити кошик", callback_data="clear_cart")
+        InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
+        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
     )
+    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
+    await message.answer_photo(photo=photo_url, caption=caption, parse_mode="Markdown", reply_markup=kb)
+
+@dp.message_handler(commands=['start_old'])
+async def start_old(message: types.Message):
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("✅ Продовжити оформлення", callback_data="next_step"),
-        InlineKeyboardButton("↩️ Назад", callback_data="order")
+        InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
+        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
     )
-    await call.message.answer(msg, reply_markup=kb)
+    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
+    await message.answer("🌿 Вітаємо! Натхнення у кожному ароматі.", reply_markup=kb)
 
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart(call: types.CallbackQuery):
-    uid = call.from_user.id
-    user_data.get(uid, {}).pop("cart", None)
-    await call.message.answer("🗑 Кошик очищено.")
-    await view_cart(call)
+@dp.callback_query_handler(lambda c: c.data == "show_perfumes")
+async def choose_category(call: types.CallbackQuery):
+    kb = InlineKeyboardMarkup(row_width=3)
+    kb.add(
+        InlineKeyboardButton("👨 Чоловічі", callback_data="cat_Чоловічі"),
+        InlineKeyboardButton("👩 Жіночі", callback_data="cat_Жіночі"),
+        InlineKeyboardButton("🌿 Нейтральні", callback_data="cat_Унісекс")
+    )
+    await call.message.answer("🎲Обери категорію🎲:", reply_markup=kb)
 
-@dp.callback_query_handler(lambda c: c.data == "edit_cart")
-async def edit_cart(call: types.CallbackQuery):
-    uid = call.from_user.id
-    cart = user_data.get(uid, {}).get("cart", {})
-    if not cart:
-        await call.message.answer("Кошик порожній.")
-        return
-    kb = InlineKeyboardMarkup(row_width=1)
-    for item in cart:
-        kb.add(InlineKeyboardButton(f"✏️ {item}", callback_data=f"edit_{item}"))
-    kb.add(InlineKeyboardButton("↩️ Назад", callback_data="view_cart"))
-    await call.message.answer("Оберіть позицію для редагування:", reply_markup=kb)
+@dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
+async def show_perfumes(call: types.CallbackQuery):
+    category = call.data[4:]
+    selected = perfumes.get(category, [])
+    for p in selected:
+        caption = f"{p['name']} — {perfume_prices[p['name']]} грн"
+        kb = InlineKeyboardMarkup(row_width=1)
+        kb.add(InlineKeyboardButton("➕ Додати до замовлення", callback_data=f"add_{p['name']}"))
+        await call.message.answer_photo(photo=p["photo"], caption=caption, reply_markup=kb)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("edit_"))
-async def prompt_edit_quantity(call: types.CallbackQuery):
-    perfume = call.data[5:]
-    user_data[call.from_user.id]["selected_edit"] = perfume
-    await call.message.answer(f"✏️ Введіть нову кількість для '{perfume}':")
+@dp.callback_query_handler(lambda c: c.data == "promotions")
+async def show_promotions(call: types.CallbackQuery):
+    promo_text = "\n".join([f"- {k}: {v['description']}" for k, v in promotions.items() if k != "Без знижки"])
+    delivery_note = f"🚚 Безкоштовна доставка при замовленні від {FREE_DELIVERY_THRESHOLD} грн (інакше +{DELIVERY_COST} грн)"
+    await call.message.answer(f"🔥 Акції на сьогодні:\n{promo_text}\n\n{delivery_note}")
 
-@dp.message_handler(lambda m: "selected_edit" in user_data.get(m.from_user.id, {}))
-async def save_edited_quantity(message: types.Message):
-    uid = message.from_user.id
-    perfume = user_data[uid].pop("selected_edit")
+@dp.callback_query_handler(lambda c: c.data == "order")
+async def start_order(call: types.CallbackQuery):
+    user_data[call.from_user.id] = user_data.get(call.from_user.id, {})
+    user_data[call.from_user.id]["cart"] = {}
+    kb = InlineKeyboardMarkup(row_width=2)
+    for cat in perfumes.values():
+        for p in cat:
+            kb.add(InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{p['name']}"))
+    kb.add(InlineKeyboardButton("🛒 Переглянути кошик", callback_data="view_cart"))
+    kb.add(InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"))
+    await call.message.answer("Обери аромати, які хочеш додати до замовлення:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def ask_quantity(call: types.CallbackQuery):
+    perfume_name = call.data[4:]
+    user_data[call.from_user.id]["selected_perfume"] = perfume_name
+    await call.message.answer(f"Скільки одиниць '{perfume_name}' додати до замовлення?")
+
+@dp.message_handler(lambda m: "selected_perfume" in user_data.get(m.from_user.id, {}))
+async def save_quantity_to_cart(message: types.Message):
     if not message.text.isdigit():
-        await message.answer("❗ Введи кількість числом")
+        await message.answer("❗ Введи кількість числом.")
         return
     qty = int(message.text)
-    if qty <= 0:
-        user_data[uid]["cart"].pop(perfume, None)
-        await message.answer(f"❌ '{perfume}' видалено з кошика.")
-    else:
-        user_data[uid]["cart"][perfume] = qty
-        await message.answer(f"✏️ Кількість '{perfume}' змінено на {qty}.")
-    await view_cart(types.CallbackQuery(from_user=message.from_user, message=message))
-
-@dp.callback_query_handler(lambda c: c.data == "next_step")
-async def ask_name(call: types.CallbackQuery):
-    uid = call.from_user.id
-    user_data[uid]["order"] = {}
-    await call.message.answer("👤 Введіть ваше імʼя:")
-
-@dp.message_handler(lambda m: "name" not in user_data.get(m.from_user.id, {}).get("order", {}))
-async def get_name(message: types.Message):
     uid = message.from_user.id
-    user_data[uid].setdefault("order", {})["name"] = message.text
-    await message.answer("📞 Введіть номер телефону:")
-
-@dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}).get("order", {}))
-async def get_phone(message: types.Message):
-    uid = message.from_user.id
-    user_data[uid]["order"]["phone"] = message.text
-    await message.answer("🏙 Введіть місто доставки:")
-
-@dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}).get("order", {}))
-async def get_city(message: types.Message):
-    uid = message.from_user.id
-    user_data[uid]["order"]["city"] = message.text
-    await message.answer("📦 Введіть адресу або номер відділення пошти:")
-
-@dp.message_handler(lambda m: "address" not in user_data.get(m.from_user.id, {}).get("order", {}))
-async def get_address(message: types.Message):
-    uid = message.from_user.id
-    user_data[uid]["order"]["address"] = message.text
-    await confirm_order_prompt(uid, message)
-
-async def confirm_order_prompt(uid, message):
-    cart = user_data[uid].get("cart", {})
-    order = user_data[uid].get("order", {})
-    if not cart or not order:
-        await message.answer("❗ Помилка: неповне замовлення.")
-        return
-
-    total = 0
-    items_text = ""
-    for name, qty in cart.items():
-        price = perfume_prices.get(name, 200)
-        line_total = price * qty
-        total += line_total
-        items_text += f"- {name} × {qty} шт — {line_total} грн\n"
-
-    delivery_note = "🚚 Доставка: "
-    if total >= FREE_DELIVERY_THRESHOLD:
-        delivery_note += "Безкоштовна"
-    else:
-        delivery_note += f"{DELIVERY_COST} грн"
-        total += DELIVERY_COST
-
-    summary = (
-        f"🔍 Підтвердження замовлення:\n\n"
-        f"👤 Імʼя: {order['name']}\n"
-        f"📞 Телефон: {order['phone']}\n"
-        f"🏙 Місто: {order['city']}\n"
-        f"📦 Адреса/відділення: {order['address']}\n\n"
-        f"🛍 Замовлення:\n{items_text}"
-        f"{delivery_note}\n"
-        f"💰 Загальна сума: {total} грн"
+    perfume = user_data[uid].pop("selected_perfume")
+    cart = user_data[uid].setdefault("cart", {})
+    cart[perfume] = cart.get(perfume, 0) + qty
+    await message.answer(f"✅ Додано {qty} × {perfume} до кошика.")
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("➕ Додати ще", callback_data="order"),
+        InlineKeyboardButton("🛒 Переглянути кошик", callback_data="view_cart")
     )
+    kb.add(InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"))
+    await message.answer("Оберіть наступну дію:", reply_markup=kb)
 
-    await message.answer(summary + "\n\n✅ Замовлення прийнято! Очікуйте підтвердження.")
+@dp.message_handler(lambda m: "name" not in user_data.get(m.from_user.id, {}))
+async def get_phone(message: types.Message):
+    
+    user_data[message.from_user.id]["name"] = message.text
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Номер телефону:", reply_markup=kb)
+
+@dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}))
+async def get_city(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
+    user_data[message.from_user.id]["phone"] = message.text
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("🏙 Введіть місто, куди буде здійснена доставка:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data in ["delivery_address", "delivery_np"])
+async def ask_for_address(call: types.CallbackQuery):
+    method = "Адресна доставка" if call.data == "delivery_address" else "Нова Пошта"
+    user_data[call.from_user.id]["delivery_method"] = method
+    note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
+    await call.message.answer(note + "‼️ Перевірте уважно правильність даних перед підтвердженням.")
+
+@dp.message_handler(lambda m: "city" not in user_data.get(m.from_user.id, {}))
+async def get_delivery_method(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
+    user_data[message.from_user.id]["city"] = message.text
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
+        InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr")
+    )
+    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="address"))
+    kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Оберіть тип доставки:", reply_markup=kb)
+
+
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_"))
+async def confirm_order_prompt(call: types.CallbackQuery):
+    uid = call.from_user.id
+    promo_key = call.data[6:]
+    user_data[uid]["promotion"] = promo_key
+    data = user_data[uid]
+    price = perfume_prices[data["perfume"]]
+    quantity = data["quantity"]
+    discount = promotions[promo_key]["discount"]
+    subtotal = max(0, price * quantity - discount * quantity)
+    delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    total = subtotal + delivery_fee
+    address_full = f"м. {data['city']}, " + (
+        f"НП {data['address']}" if data['delivery_type'] == "np" else 
+        f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
+        f"{data['address']}" )
+    order_summary = (
+    f"🔍 Підтвердження замовлення:\n"
+    f"Ім'я: {data['name']}\n"
+    f"Телефон: {data['phone']}\n"
+    f"Адреса: {address_full}"
+    f"Аромат: {data['perfume']}\n"
+    f"Кількість: {quantity} шт\n"
+    f"Ціна за одиницю: {price} грн\n"
+    f"Акція: {promo_key} (-{discount} грн/шт)\n"
+    f"Сума: {subtotal} грн\n"
+    f"Доставка: {'Безкоштовна' if delivery_fee == 0 else f'{DELIVERY_COST} грн'}\n"
+    f"Загальна сума: {total} грн\n"
+    
+)
+
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("✅ Так, підтверджую", callback_data="confirm_final"),
+        InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
+    )
+    await call.message.answer(order_summary + "\n\nБудь ласка, підтвердіть замовлення:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data == "confirm_final")
+async def finalize_order(call: types.CallbackQuery):
+    uid = call.from_user.id
+    data = user_data[uid]
+    cart = data.get("cart", {})
+    total = 0
+    full_rows = []
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    address_full = f"м. {data['city']}, " + (
+        f"НП {data['address']}" if data['delivery_type'] == "np" else 
+        f"Укрпошта {data['address']}" if data['delivery_type'] == "ukr" else 
+        f"{data['address']}" )
+
+    for perfume, quantity in cart.items():
+        price = perfume_prices.get(perfume, 200)
+        discount = promotions[data.get("promotion", "Без знижки")]["discount"]
+        subtotal = max(0, price * quantity - discount * quantity)
+        delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+        total_amount = subtotal + delivery_fee
+        profit = total_amount - (COST_PRICE * quantity)
+
+        row = [
+            data['name'],
+            data['phone'],
+            address_full,
+            perfume,
+            quantity,
+            data.get('promotion', 'Без знижки'),
+            total_amount,
+            profit,
+            timestamp,
+            uid,
+            "",
+            "✅ Відправлено"
+        ]
+        full_rows.append(row)
+        total += total_amount
+
+    for row in full_rows:
+        sheet.append_row(row)
+
+    analytics_sheet.update("B2", f"=COUNTA({sheet.title}!A2:A)")
+    analytics_sheet.update("B3", f"=SUM({sheet.title}!G2:G)")
+    analytics_sheet.update("B4", f"=SUM({sheet.title}!H2:H)")
+    analytics_sheet.update("B5", f"=INDEX({sheet.title}!D2:D, MODE(MATCH({sheet.title}!D2:D, {sheet.title}!D2:D, 0)))")
+
+    await call.message.answer("✅ Замовлення прийнято! Очікуйте на дзвінок або SMS.")
+    del user_data[uid]
+    del user_data[uid]
+
+@dp.callback_query_handler(lambda c: c.data == "cancel_order")
+async def cancel_order(call: types.CallbackQuery):
+    await call.message.answer("❌ Замовлення скасовано. Ви можете почати знову, натиснувши /start")
+    user_data.pop(call.from_user.id, None)
+
+@dp.callback_query_handler(lambda c: c.data in ["np", "ukr", "address"])
+async def get_final_address(call: types.CallbackQuery):
+    delivery_type = call.data
+    user_data[call.from_user.id]["delivery_type"] = delivery_type
+    if delivery_type == "address":
+        await call.message.answer("✍️ Введіть повну адресу доставки.‼️ Перевірте уважно перед підтвердженням!")
+    else:
+        label = "Номер відділення Нової Пошти:" if delivery_type == "np" else "Номер відділення Укрпошти:"
+        await call.message.answer(f"✍️ {label}‼️ Перевірте уважно перед підтвердженням!")
+
+@dp.message_handler(lambda m: "address" not in user_data.get(m.from_user.id, {}))
+async def get_quantity(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
+    user_data[message.from_user.id]["address"] = message.text
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Кількість (шт):", reply_markup=kb)
+
+@dp.message_handler(lambda m: "quantity" not in user_data.get(m.from_user.id, {}))
+async def get_promotion(message: types.Message):
+    if message.from_user.id not in user_data:
+        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+        return
+    if not message.text.isdigit():
+        await message.answer("🔢 Введи кількість числом!")
+        return
+    user_data[message.from_user.id]["quantity"] = int(message.text)
+    kb = InlineKeyboardMarkup(row_width=2)
+    buttons = [InlineKeyboardButton(promo, callback_data=f"promo_{promo}") for promo in promotions]
+    for i in range(0, len(buttons), 2):
+        kb.row(*buttons[i:i+2])
+    kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await message.answer("Обери акцію:", reply_markup=kb)
+
+
+
+async def notify_sent_orders():
+    while True:
+        await asyncio.sleep(60)  # Перевіряти щохвилини
+        rows = sheet.get_all_values()
+        header = rows[0]
+        if "ЕН" in header:
+            en_index = header.index("ЕН")
+            chat_index = header.index("Chat ID")
+            status_index = header.index("Статус") if "Статус" in header else None
+            for i, row in enumerate(rows[1:], start=2):
+                if len(row) > en_index and row[en_index] and (len(row) <= chat_index or not row[chat_index].startswith("✅")):
+                    try:
+                        chat_id = int(row[chat_index])
+                        tn_number = row[en_index]
+                        await bot.send_message(chat_id, f"📦 Ваше замовлення відправлено!")
+                        sheet.update_cell(i, chat_index + 1, f"✅ {tn_number}")
+                    except Exception as e:
+                        logging.warning(f"Не вдалося надіслати повідомлення: {e}")
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.create_task(notify_sent_orders())
+    executor.start_polling(dp, skip_updates=True, loop=loop)
