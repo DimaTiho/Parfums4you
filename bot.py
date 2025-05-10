@@ -326,7 +326,7 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         InlineKeyboardButton("🔙 Назад", callback_data="view_cart")
     )
     await call.message.answer(order_summary, parse_mode="Markdown", reply_markup=kb)
-await call.message.answer(order_summary + "\n\nБудь ласка, підтвердіть замовлення:", reply_markup=kb)
+
 
 @dp.callback_query_handler(lambda c: c.data == "confirm_final")
 async def finalize_order(call: types.CallbackQuery):
