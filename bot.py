@@ -313,39 +313,28 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         discount_value = 20
     elif promo_key == "Таємне слово":
         discount_value = 15
-
-    # Доставка
-    delivery_fee = 0 if discounted_total >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
-    total_with_delivery = discounted_total + delivery_fee
-
-    # Адреса
-    method = data.get("delivery_method", "")
-    address = data.get("city", "")
-    address_note = ""
-    if method == "Нова Пошта":
-        address_note = f"НП: {address}"
-    elif method == "Укрпошта":
-        address_note = f"Укрпошта: {address}"
-    elif method == "Адресна доставка":
-        address_note = f"Адреса: {address}"
-      
-    summary = "\n".join(summary_lines)
-    summary += f"\n\n💸 Сума: {subtotal} грн"
-    summary += f"\n🎁 Знижка: -{round(discount_value, 2)} грн"
-    if delivery_fee > 0:
-        summary += f"\n🚚 Доставка: {DELIVERY_COST} грн"
     else:
-        summary += "\n🚚 Доставка: безкоштовно"
-    summary += f"\n\n✅ До сплати: {round(total_with_delivery, 2)} грн"
+        discount_amount = int(discount)
+      
 
-    order_summary = (
-        f"🔍 *Підтвердження замовлення:*\n\n"
-        f"👤 Ім'я: {data.get('name')}\n"
-        f"📞 Телефон: {data.get('phone')}\n"
-        f"🏙 Доставка: {method} — {address_note}\n\n"
-        f"🛍 Товари:\n" + "\n".join(summary_lines) + "\n\n"
-        f"🚚 Доставка: {delivery_fee} грн\n"
-        f"💰 *Сума до сплати:* {total:.2f} грн"
+   total_after_discount = max(subtotal - discount_amount, 0)
+    delivery_fee = 0 if total_after_discount >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    final_total = total_after_discount + delivery_fee
+
+    # Збереження суми
+    user_data[uid]["total"] = final_total
+
+    promo_text = promotions[promo_key]["description"]
+    summary = "\n".join(summary_lines)
+    delivery_text = "🚚 Безкоштовна доставка" if delivery_fee == 0 else f"🚚 Доставка: {DELIVERY_COST} грн"
+    final_msg = (
+        f"🧾 *Підсумок замовлення:*\n\n"
+        f"{summary}\n"
+        f"💰 Сума: {subtotal} грн\n"
+        f"🎁 Знижка ({promo_text}): -{discount_amount} грн\n"
+        f"🚚 Доставка {delivery_text}\n"
+        f"✅ *До сплати: {final_total} грн*\n\n"
+        f"Підтвердити замовлення?"
     )
 
     kb = InlineKeyboardMarkup().add(
