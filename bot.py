@@ -363,7 +363,7 @@ async def finalize_order(call: types.CallbackQuery):
         data.get("promotion", "Без знижки"),
         data.get("total", 0)
     ])
-        full_rows.append(row)
+        
         total += total_amount
 
     for row in full_rows:
