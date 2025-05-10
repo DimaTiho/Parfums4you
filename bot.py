@@ -56,7 +56,7 @@ perfumes = {
         {"name": "Chanel Chance", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"},
         {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
     ]
-},
+}
         
 perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
 
