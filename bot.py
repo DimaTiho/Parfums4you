@@ -1,15 +1,14 @@
 import logging
-import ssl
-import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, ReplyKeyboardRemove
+from aiogram.utils import executor
 from datetime import datetime
+import asyncio
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import os
 
 # === Налаштування ===
-BOT_TOKEN = os.getenv("7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U')
+BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 COST_PRICE = 80
@@ -18,8 +17,6 @@ DELIVERY_COST = 70
 
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-if not os.path.exists(CREDENTIALS_FILE):
-    raise FileNotFoundError(f"Файл {CREDENTIALS_FILE} не знайдено. Завантажте credentials.json або перевірте шлях.")
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
 client = gspread.authorize(creds)
 workbook = client.open(GOOGLE_SHEET_NAME)
@@ -37,103 +34,149 @@ except:
 # === Ініціалізація бота ===
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot)
 user_data = {}
+user_cart = {}
 
-# === Дані ===
-perfumes = {
-    "Жіночі": [
-        {"name": "Chanel Chance", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Dior J'adore", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Lancôme La Vie Est Belle", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "YSL Mon Paris", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"}
-    ],
-    "Чоловічі": [
-        {"name": "Dior Sauvage", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Versace Eros", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Bleu de Chanel", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Paco Rabanne Invictus", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"}
-    ],
-    "Унісекс": [
-        {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Creed Aventus", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Molecule 01", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Byredo Gypsy Water", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"}
-    ],
-    "ТОП продаж": [
-        {"name": "Dior Sauvage", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Chanel Chance", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"},
-        {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg"}
-    ]
-}
+# === Обробка команди /start ===
+@dp.message_handler(commands=["start"])
+async def cmd_start(message: types.Message):
+    uid = message.from_user.id
+    user_data[uid] = {"step": "name"}
+    user_cart[uid] = []
+    await message.answer("👋 Вітаємо! Введіть ваше ім'я:")
 
-perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
+# === Обробка етапів оформлення замовлення ===
+@dp.message_handler(lambda m: m.text)
+async def handle_order_steps(message: types.Message):
+    uid = message.from_user.id
+    data = user_data.setdefault(uid, {})
+    step = data.get("step", "name")
 
-promotions = {
-    "1+1=Подарунок": {"description": "Купи 2 — третій у подарунок", "discount": 66.67},
-    "Парфум дня": {"description": "-20 грн на обраний аромат", "discount": 20},
-    "Перший клієнт": {"description": "10% знижка на перше замовлення", "discount": 20},
-    "Таємне слово": {"description": "Назви слово 'АРОМАТ' — знижка 15 грн", "discount": 15},
-    "Без знижки": {"description": "Без акцій", "discount": 0},
-}
+    if step == "name":
+        data["name"] = message.text
+        data["step"] = "phone"
+        await message.answer("📱 Введіть номер телефону:")
+    elif step == "phone":
+        data["phone"] = message.text
+        data["step"] = "city"
+        await message.answer("🏙 Введіть місто, куди буде здійснена доставка:")
+    elif step == "city":
+        data["city"] = message.text
+        data["step"] = "delivery"
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(
+            InlineKeyboardButton("📦 Нова Пошта", callback_data="delivery_np"),
+            InlineKeyboardButton("✉️ Укрпошта", callback_data="delivery_ukr")
+        )
+        kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="delivery_address"))
+        await message.answer("🚚 Оберіть тип доставки:", reply_markup=kb)
+    else:
+        await message.answer("❗ Введення вже завершено або почніть спочатку з /start")
 
-# === Обробка повідомлень ===
-
-def message_condition(field):
-    return lambda message: field in user_data.get(message.from_user.id, {})
-
-def message_missing_field(field):
-    return lambda message: field not in user_data.get(message.from_user.id, {})
-
-@dp.message(lambda message: "search_mode" in user_data.get(message.from_user.id, {}))
-async def perform_search(message: types.Message):
-    pass
-
-@dp.message(lambda message: "selected_perfume" in user_data.get(message.from_user.id, {}))
-async def save_quantity_to_cart(message: types.Message):
-    pass
-
-@dp.message(lambda message: "name" not in user_data.get(message.from_user.id, {}))
-async def get_phone(message: types.Message):
-    pass
-
-@dp.message(lambda message: "phone" not in user_data.get(message.from_user.id, {}))
-async def get_city(message: types.Message):
-    if message.from_user.id not in user_data:
-        await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
+# === Обробка вибору доставки ===
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith("delivery_"))
+async def process_delivery_choice(callback_query: types.CallbackQuery):
+    uid = callback_query.from_user.id
+    data = user_data.get(uid, {})
+    if not data:
+        await callback_query.message.answer("Будь ласка, почніть замовлення з /start")
         return
-    user_data[message.from_user.id]["city"] = message.text
 
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("📦 Нова Пошта", callback_data="np"),
-        InlineKeyboardButton("📮 Укрпошта", callback_data="ukr"),
-        InlineKeyboardButton("🏠 Адресна доставка", callback_data="address")
-    )
-    kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
-    await message.answer("Оберіть тип доставки:", reply_markup=kb)
-
-@dp.callback_query(lambda c: c.data in ["np", "ukr", "address"])
-async def ask_for_address(call: types.CallbackQuery):
-    delivery_methods = {
+    delivery_type = callback_query.data.replace("delivery_", "")
+    delivery_map = {
         "np": "Нова Пошта",
         "ukr": "Укрпошта",
         "address": "Адресна доставка"
     }
-    method = delivery_methods.get(call.data)
-    user_data[call.from_user.id]["delivery_method"] = method
+    delivery_name = delivery_map.get(delivery_type, "Невідомо")
+    data["delivery"] = delivery_type
 
-    prompt = {
-        "Нова Пошта": "🏤 Введіть місто та номер відділення НП:",
-        "Укрпошта": "📮 Введіть місто та поштовий індекс + адресу:",
-        "Адресна доставка": "📍 Введіть місто та повну адресу доставки:"
-    }
+    # Розрахунок суми замовлення
+    cart = user_cart.get(uid, [])
+    total = sum(item['price'] for item in cart)
+    delivery_fee = 0 if total >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
+    final_total = total + delivery_fee
 
-    await call.message.answer(prompt[method] + "\n‼️ Перевірте уважно правильність даних перед підтвердженням.")
+    summary = (
+        f"✅ Замовлення підтверджено!\n\n"
+        f"👤 Ім'я: {data.get('name')}\n"
+        f"📞 Телефон: {data.get('phone')}\n"
+        f"🏙 Місто: {data.get('city')}\n"
+        f"🚚 Доставка: {delivery_name}\n"
+        f"🛒 Кошик: {', '.join([item['name'] for item in cart])}\n"
+        f"💵 Сума: {total} грн\n"
+        f"🚚 Доставка: {delivery_fee} грн\n"
+        f"💰 Всього до сплати: {final_total} грн"
+    )
 
-# === Запуск бота ===
-async def main():
-    await dp.start_polling(bot)
+    await callback_query.message.edit_reply_markup()
+    await callback_query.message.answer(summary)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([
+        now,
+        data.get("name", ""),
+        data.get("phone", ""),
+        data.get("city", ""),
+        delivery_name,
+        ", ".join([item['name'] for item in cart]),
+        total,
+        delivery_fee,
+        final_total
+    ])
+
+    user_data.pop(uid, None)
+    user_cart.pop(uid, None)
+
+# === Додати товар до кошика (приклад функції) ===
+@dp.message_handler(commands=["add"])
+async def add_to_cart(message: types.Message):
+    uid = message.from_user.id
+    if uid not in user_cart:
+        user_cart[uid] = []
+
+    item = {"name": "Chanel No. 5", "price": 120}
+    user_cart[uid].append(item)
+    await message.answer(f"✅ {item['name']} додано до кошика!")
+
+# === Перегляд кошика ===
+@dp.message_handler(commands=["cart"])
+async def view_cart(message: types.Message):
+    uid = message.from_user.id
+    cart = user_cart.get(uid, [])
+
+    if not cart:
+        await message.answer("🛒 Ваш кошик порожній.")
+        return
+
+    text = "🛍 Ваш кошик:\n"
+    total = 0
+    for idx, item in enumerate(cart, start=1):
+        text += f"{idx}. {item['name']} — {item['price']} грн\n"
+        total += item['price']
+
+    text += f"\n💵 Загальна сума: {total} грн"
+    await message.answer(text)
+
+# === Видалення товару з кошика ===
+@dp.message_handler(commands=["remove"])
+async def remove_from_cart(message: types.Message):
+    uid = message.from_user.id
+    cart = user_cart.get(uid, [])
+
+    if not cart:
+        await message.answer("❌ Ваш кошик порожній. Нічого видаляти.")
+        return
+
+    args = message.get_args()
+    if not args.isdigit():
+        await message.answer("❗ Введіть номер товару для видалення. Наприклад: /remove 1")
+        return
+
+    index = int(args) - 1
+    if 0 <= index < len(cart):
+        removed = cart.pop(index)
+        await message.answer(f"🗑 {removed['name']} видалено з кошика.")
+    else:
+        await message.answer("❗ Невірний номер товару.")
