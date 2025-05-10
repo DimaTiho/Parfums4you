@@ -79,7 +79,7 @@ async def welcome(message: types.Message):
     "🌸 Вітаємо у світі ароматів!\n"
     "Обирайте найкраще та замовляйте зручно:",
     reply_markup=keyboard
-
+    )
 
 @dp.callback_query_handler(lambda c: c.data == "show_promotions")
 async def show_promotions(call: types.CallbackQuery):
