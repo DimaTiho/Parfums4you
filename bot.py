@@ -142,8 +142,9 @@ async def choose_category(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "search_perfume")
 async def search_perfume_prompt(call: types.CallbackQuery):
-    user_data[call.from_user.id]["search_mode"] = True
+    user_data.setdefault(call.from_user.id, {})["search_mode"] = True
     await call.message.answer("🔎 Введіть назву аромату для пошуку:")
+
 
 @dp.message_handler(lambda m: user_data.get(m.from_user.id, {}).get("search_mode"))
 async def perform_search(message: types.Message):
