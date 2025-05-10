@@ -317,7 +317,6 @@ async def confirm_order_prompt(call: types.CallbackQuery):
         discount_amount = int(discount)
       
 
-   total_after_discount = max(subtotal - discount_amount, 0)
     delivery_fee = 0 if total_after_discount >= FREE_DELIVERY_THRESHOLD else DELIVERY_COST
     final_total = total_after_discount + delivery_fee
 
