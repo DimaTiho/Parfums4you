@@ -227,12 +227,18 @@ async def save_quantity_to_cart(message: types.Message):
     kb.add(InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"))
     await message.answer("Оберіть наступну дію:", reply_markup=kb)
 
+    user_data[message.from_user.id]["name"] = message.text
+    user_data[call.from_user.id]["step"] = "get_name"
+    kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
+    await call.message.answer("🧑 Введіть ваше ім'я:")
+
 @dp.message_handler(lambda m: "name" not in user_data.get(m.from_user.id, {}))
 async def get_phone(message: types.Message):
     
     user_data[message.from_user.id]["name"] = message.text
+    user_data[message.from_user.id]["step"] = "get_phone"
     kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
-    await message.answer("Номер телефону:", reply_markup=kb)
+    await message.answer("📞Номер телефону:", reply_markup=kb)
 
 @dp.message_handler(lambda m: "phone" not in user_data.get(m.from_user.id, {}))
 async def get_city(message: types.Message):
@@ -240,6 +246,7 @@ async def get_city(message: types.Message):
         await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
         return
     user_data[message.from_user.id]["phone"] = message.text
+    user_data[message.from_user.id]["step"] = "get_city"
     kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("🏙 Введіть місто, куди буде здійснена доставка:", reply_markup=kb)
 
@@ -256,6 +263,7 @@ async def get_delivery_method(message: types.Message):
         await message.answer("⚠️ Будь ласка, почніть замовлення з /start або натисніть '📝 Замовити'")
         return
     user_data[message.from_user.id]["city"] = message.text
+    user_data[message.from_user.id]["step"] = None
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
