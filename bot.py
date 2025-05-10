@@ -430,8 +430,7 @@ async def view_cart(call: types.CallbackQuery):
         InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"),
         InlineKeyboardButton("🏠 Головна", callback_data="start")
     )
-    await call.message.answer("
-".join(lines), parse_mode="Markdown", reply_markup=kb)
+    await call.message.answer("\n".join(lines), parse_mode="Markdown", reply_markup=kb)
 
 
 @dp.callback_query_handler(lambda c: c.data == "clear_cart")
