@@ -57,61 +57,7 @@ perfumes = {
         {"name": "Tom Ford Black Orchid", "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
     ]
 },
-        {"name": "Dior J'adore", "photo": "https://i.imgur.com/s3QvDOA.jpg"},
-        {"name": "Lancôme La Vie Est Belle", "photo": "https://i.imgur.com/k9cJjld.jpg"},
-        {"name": "YSL Mon Paris", "photo": "https://i.imgur.com/etRBLgh.jpg"}
-    ],
-    "Чоловічі": [
-        {"name": "Dior Sauvage", "photo": "https://i.imgur.com/Ek9Ek5F.jpg"},
-        {"name": "Versace Eros", "photo": "https://i.imgur.com/H7TjWq7.jpg"},
-        {"name": "Bleu de Chanel", "photo": "https://i.imgur.com/2dADtZf.jpg"},
-        {"name": "Paco Rabanne Invictus", "photo": "https://i.imgur.com/IHyWrhg.jpg"}
-    ],
-    "Унісекс": [
-        {"name": "Tom Ford Black Orchid", "photo": "https://i.imgur.com/0tBd1Yt.jpg"},
-        {"name": "Creed Aventus", "photo": "https://i.imgur.com/SSZZnvd.jpg"},
-        {"name": "Molecule 01", "photo": "https://i.imgur.com/MCthqN7.jpg"},
-        {"name": "Byredo Gypsy Water", "photo": "https://i.imgur.com/AvZ8MOT.jpg"}
-    ],
-    "ТОП продаж": [
-        {"name": "Dior Sauvage", "photo": "https://i.imgur.com/Ek9Ek5F.jpg"},
-        {"name": "Chanel Chance", "photo": "https://i.imgur.com/bW6XfZj.jpg"},
-        {"name": "Tom Ford Black Orchid", "photo": "https://i.imgur.com/0tBd1Yt.jpg"}
-    ]
-},
-        {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"},
-        {"name": "Lancôme La Vie Est Belle", "photo": "https://example.com/lviebelle.jpg"},
-        {"name": "YSL Mon Paris", "photo": "https://example.com/monparis.jpg"}
-    ],
-    "Чоловічі": [
-        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
-        {"name": "Versace Eros", "photo": "https://example.com/eros.jpg"},
-        {"name": "Bleu de Chanel", "photo": "https://example.com/bleu.jpg"},
-        {"name": "Paco Rabanne Invictus", "photo": "https://example.com/invictus.jpg"}
-    ],
-    "Унісекс": [
-        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"},
-        {"name": "Creed Aventus", "photo": "https://example.com/aventus.jpg"},
-        {"name": "Molecule 01", "photo": "https://example.com/molecule.jpg"},
-        {"name": "Byredo Gypsy Water", "photo": "https://example.com/gypsy.jpg"}
-    ],
-    "ТОП продаж": [
-        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
-        {"name": "Chanel Chance", "photo": "https://example.com/chanel.jpg"},
-        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"}
-    ]
-},
-        {"name": "Dior J'adore", "photo": "https://example.com/jadore.jpg"}
-    ],
-    "Чоловічі": [
-        {"name": "Dior Sauvage", "photo": "https://example.com/sauvage.jpg"},
-        {"name": "Versace Eros", "photo": "https://example.com/eros.jpg"}
-    ],
-    "Унісекс": [
-        {"name": "Tom Ford Black Orchid", "photo": "https://example.com/ford.jpg"},
-        {"name": "Creed Aventus", "photo": "https://example.com/aventus.jpg"}
-    ]
-}
+        
 perfume_prices = {p["name"]: 200 for cat in perfumes.values() for p in cat}
 
 promotions = {
