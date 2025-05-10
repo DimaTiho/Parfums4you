@@ -71,35 +71,81 @@ async def start(message: types.Message):
         "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
         "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
         "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
-        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
-    )
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.")
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
-        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
+        InlineKeyboardButton("📦 Каталог парфумів", callback_data="show_perfumes"),
+        InlineKeyboardButton("🔥 Акції та Бонуси", callback_data="promotions")
     )
-    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
+    kb.add(
+        InlineKeyboardButton("⭐ Знижка дня", callback_data="daily_deal"),
+        InlineKeyboardButton("ℹ️ Як замовити?", callback_data="how_to_order")
+    )
+    kb.add(
+        InlineKeyboardButton("💬 Відгуки", callback_data="reviews"),
+        InlineKeyboardButton("📞 Зв'язок з менеджером", url="https://t.me/your_manager_username")
+    )
     await message.answer_photo(photo=photo_url, caption=caption, parse_mode="Markdown", reply_markup=kb)
 
 @dp.message_handler(commands=['start_old'])
 async def start_old(message: types.Message):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("📦 Парфуми", callback_data="show_perfumes"),
-        InlineKeyboardButton("🔥 Акції", callback_data="promotions")
+        InlineKeyboardButton("📦 Каталог парфумів", callback_data="show_perfumes"),
+        InlineKeyboardButton("🔥 Акції / Знижки", callback_data="promotions")
     )
-    kb.add(InlineKeyboardButton("📝 Замовити", callback_data="order"))
+    kb.add(
+        InlineKeyboardButton("ℹ️ Як замовити?", callback_data="how_to_order"),
+        InlineKeyboardButton("💬 Відгуки", callback_data="reviews")
+    )
+    kb.add(
+        InlineKeyboardButton("📞 Зв'язок з менеджером", url="https://t.me/your_manager_username")
+    )
     await message.answer("🌿 Вітаємо! Натхнення у кожному ароматі.", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "show_perfumes")
 async def choose_category(call: types.CallbackQuery):
-    kb = InlineKeyboardMarkup(row_width=3)
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("👨 Чоловічі", callback_data="cat_Чоловічі"),
-        InlineKeyboardButton("👩 Жіночі", callback_data="cat_Жіночі"),
-        InlineKeyboardButton("🌿 Нейтральні", callback_data="cat_Унісекс")
+        InlineKeyboardButton("👩 Жіночі", callback_data="cat_Жіночі")
     )
-    await call.message.answer("🎲Обери категорію🎲:", reply_markup=kb)
+    kb.add(
+        InlineKeyboardButton("🌿 Унісекс", callback_data="cat_Унісекс"),
+        InlineKeyboardButton("🔝 ТОП продаж", callback_data="top_sales")
+    )
+    kb.add(InlineKeyboardButton("🔎 Знайти назву", callback_data="search_perfume"))
+    kb.add(
+        InlineKeyboardButton("↩️ Назад", callback_data="start"),
+        InlineKeyboardButton("🏠 Головна", callback_data="start")
+    )
+    await call.message.answer("🎲 Оберіть категорію або пошук:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data == "search_perfume")
+async def search_perfume_prompt(call: types.CallbackQuery):
+    user_data[call.from_user.id]["search_mode"] = True
+    await call.message.answer("🔎 Введіть назву аромату для пошуку:")
+
+@dp.message_handler(lambda m: user_data.get(m.from_user.id, {}).get("search_mode"))
+async def perform_search(message: types.Message):
+    query = message.text.lower()
+    results = []
+    for category in perfumes.values():
+        for perfume in category:
+            if query in perfume["name"].lower():
+                results.append(perfume)
+
+    if results:
+        for p in results:
+            caption = f"{p['name']} — {perfume_prices.get(p['name'], 200)} грн"
+            kb = InlineKeyboardMarkup().add(
+                InlineKeyboardButton("➕ Додати до замовлення", callback_data=f"add_{p['name']}")
+            )
+            await message.answer_photo(p["photo"], caption=caption, reply_markup=kb)
+    else:
+        await message.answer("❌ Нічого не знайдено. Спробуйте іншу назву.")
+
+    del user_data[message.from_user.id]["search_mode"]
 
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 async def show_perfumes(call: types.CallbackQuery):
@@ -110,6 +156,13 @@ async def show_perfumes(call: types.CallbackQuery):
         kb = InlineKeyboardMarkup(row_width=1)
         kb.add(InlineKeyboardButton("➕ Додати до замовлення", callback_data=f"add_{p['name']}"))
         await call.message.answer_photo(photo=p["photo"], caption=caption, reply_markup=kb)
+
+    nav_kb = InlineKeyboardMarkup(row_width=2)
+    nav_kb.add(
+        InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"),
+        InlineKeyboardButton("🏠 Головна", callback_data="start")
+    )
+    await call.message.answer("⬅️ Оберіть іншу категорію або поверніться:", reply_markup=nav_kb)
 
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def show_promotions(call: types.CallbackQuery):
@@ -343,6 +396,61 @@ async def notify_sent_orders():
                         sheet.update_cell(i, chat_index + 1, f"✅ {tn_number}")
                     except Exception as e:
                         logging.warning(f"Не вдалося надіслати повідомлення: {e}")
+
+@dp.callback_query_handler(lambda c: c.data == "view_cart")
+async def view_cart(call: types.CallbackQuery):
+    uid = call.from_user.id
+    cart = user_data.get(uid, {}).get("cart", {})
+    if not cart:
+        await call.message.answer("🛒 Кошик порожній.")
+        return
+
+    total = 0
+    lines = ["🛍 *Ваш кошик:*
+"]
+    for perfume, qty in cart.items():
+        price = perfume_prices.get(perfume, 200)
+        sum_price = qty * price
+        total += sum_price
+        lines.append(f"• {perfume} — {qty} шт × {price} грн = {sum_price} грн")
+
+    delivery_note = "🚚 Доставка: Безкоштовна" if total >= FREE_DELIVERY_THRESHOLD else f"🚚 Доставка: +{DELIVERY_COST} грн"
+    discount_key = user_data.get(uid, {}).get("promotion", "Без знижки")
+    promo_desc = promotions.get(discount_key, {}).get("description", "Без акції")
+
+    lines.append(f"
+💰 Підсумок: {total} грн")
+    lines.append(delivery_note)
+    lines.append(f"🎁 Акція/Бонус: {discount_key} ({promo_desc})")
+
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("✅ Оформити замовлення", callback_data="start_checkout"),
+        InlineKeyboardButton("♻️ Очистити кошик", callback_data="clear_cart")
+    )
+    kb.add(
+        InlineKeyboardButton("↩️ Назад", callback_data="show_perfumes"),
+        InlineKeyboardButton("🏠 Головна", callback_data="start")
+    )
+    await call.message.answer("
+".join(lines), parse_mode="Markdown", reply_markup=kb)
+
+
+@dp.callback_query_handler(lambda c: c.data == "clear_cart")
+async def clear_cart(call: types.CallbackQuery):
+    uid = call.from_user.id
+    if uid in user_data:
+        user_data[uid]["cart"] = {}
+    await call.message.answer("🧹 Кошик очищено.")
+
+
+@dp.callback_query_handler(lambda c: c.data == "start_checkout")
+async def start_checkout(call: types.CallbackQuery):
+    uid = call.from_user.id
+    if uid not in user_data or not user_data[uid].get("cart"):
+        await call.message.answer("❗ Ваш кошик порожній. Спочатку додайте товари.")
+        return
+    await call.message.answer("✍️ Введіть ім'я для оформлення замовлення:")
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
