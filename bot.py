@@ -81,7 +81,7 @@ async def welcome(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "show_promotions")
 async def show_promotions(call: types.CallbackQuery):
     promo_text = "\n".join([f"- {k}: {v['description']}" for k, v in promotions.items() if k != "Без знижки"])
-    await call.message.answer(f"🎁 Актуальні акції:
+    await call.message.answer(f"🎁 Актуальні акції":
 {promo_text}")
 
 
