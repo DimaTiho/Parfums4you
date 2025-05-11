@@ -182,20 +182,25 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
 used_promo_users = set()
 PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
 
-@dp.message_handler(content_types=types.ContentTypes.ANY)
-async def handle_reviews(message: types.Message):
-    if message.text and message.text.startswith("/"):
-        return  # пропустити команди
+class ReviewState(StatesGroup):
+    waiting_text = State()
 
+@dp.callback_query_handler(lambda c: c.data == "reviews")
+async def ask_for_review(callback: types.CallbackQuery):
+    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче:")
+    await ReviewState.waiting_text.set()
+    await callback.answer()
+
+@dp.message_handler(state=ReviewState.waiting_text)
+async def receive_review(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if user_id in used_promo_users:
-        await message.reply("Дякуємо за відгук! Ви вже отримали промокод.")
-        return
-      
-# Відповідь з промокодом
-    promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10"
-    used_promo_users.add(user_id)
-    await message.reply(f"Дякуємо за відгук! 🎁 Ось ваш персональний промокод: *{promo}*\nВикористовуйте його при наступному замовленні.")
+        await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
+    else:
+        promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10"
+        used_promo_users.add(user_id)
+        await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
+    await state.finish()
 
 # Блок: Акції та бонуси
 @dp.message_handler(lambda message: message.text == "Акції та бонуси")
