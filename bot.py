@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Telegram токен
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
-GOOGLE_SHEET_NAME = 'Парфуми'
+GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
 # === Google Sheets ===
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -55,7 +55,7 @@ def apply_third_item_discount(cart):
         sorted_cart = sorted(cart, key=lambda x: x['price'])
         sorted_cart[2]['price'] = round(sorted_cart[2]['price'] * 0.5, 2)
     return cart
-{}
+user_carts = {}
 user_discounts = {}
 user_data = {}
 
