@@ -136,8 +136,8 @@ async def handle_category(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await bot.send_message(callback.from_user.id, "Оберіть категорію парфумів:", reply_markup=catalog_menu)
-  # Знижка
-  daily_discount = {}
+# Знижка дня
+daily_discount = {}
 last_discount_update = None
 
 def generate_daily_discount():
