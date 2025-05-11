@@ -117,7 +117,10 @@ async def show_catalog(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "main_menu")
 async def back_to_main(callback: types.CallbackQuery):
-    await callback.message.edit_text(
+    await bot.send_photo(
+    chat_id=message.chat.id,
+    photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
+    caption=(
         "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
         "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
         "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
@@ -143,7 +146,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
         generate_daily_discount()
     p = daily_discount
     discounted_price = int(p['price'] * 0.5)
-    caption = f"*Знижка дня!*
+    caption = f"*Знижка дня!*"
 
 Сьогодні у нас акція на:
 *{p['name']}*
@@ -421,7 +424,8 @@ async def get_delivery_info(message: types.Message, state: FSMContext):
         data['address_or_post'],
         ', '.join(cart),
         order_time,
-        ""])
+        ""
+    ])
 
     # Очистити кошик після замовлення
     user_carts[user_id] = []
