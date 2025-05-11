@@ -470,19 +470,12 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     await state.update_data(address_or_post=message.text)
     data = await state.get_data()
     order_summary = (
-        f"*Підтвердіть замовлення:*
-
-"
-        f"👤 Ім'я: {data['name']}
-"
-        f"📞 Телефон: {data['phone']}
-"
-        f"🏙 Місто: {data['city']}
-"
-        f"🚚 Доставка: {'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса'}
-"
-        f"📍 Деталі: {data['address_or_post']}
-"
+        f"*Підтвердіть замовлення:*"
+        f"👤 Ім'я: {data['name']}\n\n"
+        f"📞 Телефон: {data['phone']}\n\n"
+        f"🏙 Місто: {data['city']}\n\n"
+        f"🚚 Доставка: {'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса'}\n\n"
+        f"📍 Деталі: {data['address_or_post']}\n\n"
     )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
