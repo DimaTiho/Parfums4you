@@ -515,6 +515,9 @@ async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
     await bot.send_message(callback.from_user.id, "❌ Замовлення скасовано.")
     await state.finish()
 
+@dp.message_handler()
+async def prompt_start(message: types.Message):
+    await message.answer("❗ Щоб почати, натисніть /start або кнопку *«Головне меню»*.")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
