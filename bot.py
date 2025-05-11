@@ -501,7 +501,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer("❌ Замовлення скасовано.")
     await state.finish()
-    await callback.answer())
+    await callback.answer()
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_delivery_info(message: types.Message, state: FSMContext):
