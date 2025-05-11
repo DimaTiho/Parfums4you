@@ -59,17 +59,6 @@ user_carts = {}
 user_discounts = {}
 user_data = {}
 
-# Стартове повідомлення та головне меню
-main_menu_buttons = [
-    [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog")],
-    [InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
-    [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
-    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
-    [InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
-    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer")]
-]
-main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
-
 @dp.message_handler(lambda message: message.text == "Як замовити" or message.text.lower() == "/how_to_order")
 async def how_to_order(message: types.Message):
     instructions = (
@@ -85,6 +74,32 @@ async def how_to_order(message: types.Message):
 
 
 
+@dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
+async def back_to_main(callback: types.CallbackQuery):
+    await bot.send_photo(
+    chat_id=callback.message.chat.id,
+    photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
+    caption=(
+        "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
+        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
+        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
+        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
+        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
+        ),
+        reply_markup=main_menu,
+    )
+    await callback.answer()
+  # Стартове повідомлення та головне меню
+main_menu_buttons = [
+    [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog")],
+    [InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
+    [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
+    [InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
+    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer")]
+]
+main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton("👩Жіночі", callback_data="cat_women"), InlineKeyboardButton("Унісекс", callback_data="cat_unisex")],
@@ -121,23 +136,6 @@ async def handle_category(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await callback.message.edit_text("Оберіть категорію парфумів:", reply_markup=catalog_menu)
-
-@dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
-async def back_to_main(callback: types.CallbackQuery):
-    await bot.send_photo(
-    chat_id=callback.message.chat.id,
-    photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
-    caption=(
-        "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
-        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
-        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
-        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
-        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
-        ),
-        reply_markup=main_menu,
-    )
-    await callback.answer()
 # Знижка дня
 daily_discount = {}
 last_discount_update = None
@@ -154,7 +152,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
     p = daily_discount
-    discounted_price = int(p['price'] * 0.5)
+    discounted_price = int(p['price'] * 0.15)
     caption = (
         f"*Знижка дня!*\n\n"
         f"Сьогодні у нас акція на:\n"
