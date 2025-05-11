@@ -257,7 +257,8 @@ async def get_city(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data in ["delivery_address", "delivery_np"])
 async def ask_for_address(call: types.CallbackQuery):
-    method = "Адресна доставка" if call.data == "delivery_address" else "Нова Пошта"
+    method = "Адресна доставка" if call.data == "delivery_address"
+    else "Нова Пошта"
     user_data[call.from_user.id]["delivery_method"] = method
     note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
     await call.message.answer(note + "‼️ Перевірте уважно правильність даних перед підтвердженням.")
@@ -269,10 +270,10 @@ async def get_city(message: types.Message):
     user_data[uid]["step"] = None  # або "get_delivery_method" якщо хочете уточнити
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("📦 Доставка Нова Пошта", callback_data="np"),
-        InlineKeyboardButton("✉️ Доставка Укрпошта", callback_data="ukr")
+        InlineKeyboardButton("📦 Нова Пошта", callback_data="delivery_np"),
+        InlineKeyboardButton("✉️ Укрпошта", callback_data="delivery_ukr"),
     )
-    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="address"))
+    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="delivery_address")
     kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("📬Оберіть тип доставки:", reply_markup=kb)
 
