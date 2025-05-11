@@ -205,8 +205,7 @@ async def promotions_handler(message: types.Message):
         "4️⃣ *Набір зі знижкою -15%*\n"
         "При покупці 3+ парфумів — знижка 15% на кожен."
     )
-        await message_or_callback.message.edit_text(promo_text, reply_markup=main_menu),
-        await message_or_callback.answer()
+       await message.answer(promo_text, reply_markup=main_menu)
       
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
