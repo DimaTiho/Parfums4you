@@ -48,8 +48,6 @@ class OrderStates(StatesGroup):
     confirmation = State()
 
 # Тимчасове збереження кошика
-user_carts = 
-
 
 # === Акція: 3-й парфум зі знижкою 50% ===
 def apply_third_item_discount(cart):
