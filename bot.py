@@ -272,7 +272,7 @@ async def get_city(message: types.Message):
         InlineKeyboardButton("📦 Нова Пошта", callback_data="delivery_np"),
         InlineKeyboardButton("✉️ Укрпошта", callback_data="delivery_ukr"),
     )
-    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="delivery_address")
+    kb.add(InlineKeyboardButton("🏠 Адресна доставка", callback_data="delivery_address"))
     kb.add(InlineKeyboardButton("🔙 На головну", callback_data="start"))
     await message.answer("📬Оберіть тип доставки:", reply_markup=kb)
 
