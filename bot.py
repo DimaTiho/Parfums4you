@@ -17,12 +17,6 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
 
-# Google Sheets авторизація
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open("Parfums").sheet1
-
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
@@ -255,31 +249,68 @@ async def promo_conditions(call: types.CallbackQuery):
     await call.message.answer(conditions[call.data])
     await call.answer()
 
-# === Додавання до кошика ===
-@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
-async def add_to_cart(callback: types.CallbackQuery):
-    perfume_name = callback.data[4:]
-    user_id = callback.from_user.id
+# Додати товар до кошика
+@dp.message_handler(lambda message: message.text.lower().startswith("додати "))
+async def add_to_cart(message: types.Message):
+    user_id = message.from_user.id
+    parts = message.text.split(" ", 2)
+    if len(parts) < 3:
+        await message.answer("❗ Введіть команду у форматі: Додати Назва Ціна")
+        return
+    name = parts[1]
+    try:
+        price = int(parts[2])
+    except ValueError:
+        await message.answer("❗ Ціна повинна бути числом.")
+        return
+
     if user_id not in user_carts:
         user_carts[user_id] = []
-    user_carts[user_id].append(perfume_name)
-    await callback.answer("Додано до кошика!")
+    user_carts[user_id].append({"name": name, "price": price})
+    await message.answer(f"✅ {name} додано до кошика за {price} грн.")
 
-@dp.message_handler(commands=["cart"])
+# Переглянути кошик
+@dp.message_handler(commands=["кошик", "cart"])
 async def view_cart(message: types.Message):
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await message.answer("Ваш кошик порожній.")
+        await message.answer("🛒 Ваш кошик порожній.")
         return
-    text = "🛒 *Ваш кошик:*\n" + "\n".join(f"• {item}" for item in cart)
+    text = "*Ваш кошик:*\n"
+    total = 0
+    for i, item in enumerate(cart, 1):
+        text += f"{i}. {item['name']} - {item['price']} грн\n"
+        total += item['price']
+    discount = user_discounts.get(user_id, 0)
+    final_price = total - discount
+    text += f"\n💵 Загальна сума: {total} грн"
+    if discount:
+        text += f"\n🎁 Знижка: {discount} грн"
+        text += f"\n✅ До сплати: {final_price} грн"
     await message.answer(text)
 
-@dp.message_handler(commands=["clearcart"])
+# Очистити кошик
+@dp.message_handler(commands=["очистити", "clear"])
 async def clear_cart(message: types.Message):
     user_id = message.from_user.id
     user_carts[user_id] = []
-    await message.answer("Кошик очищено.")
+    await message.answer("🧹 Кошик очищено.")
+
+# Видалити товар із кошика
+@dp.message_handler(lambda message: message.text.lower().startswith("видалити "))
+async def remove_from_cart(message: types.Message):
+    user_id = message.from_user.id
+    cart = user_carts.get(user_id, [])
+    try:
+        index = int(message.text.split()[1]) - 1
+        if 0 <= index < len(cart):
+            removed = cart.pop(index)
+            await message.answer(f"❌ Видалено: {removed['name']}")
+        else:
+            await message.answer("❗ Невірний номер товару.")
+    except (IndexError, ValueError):
+        await message.answer("❗ Введіть команду у форматі: Видалити 1")
 
 # === Оформлення замовлення ===
 @dp.message_handler(commands=["order"])
@@ -501,7 +532,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer("❌ Замовлення скасовано.")
     await state.finish()
-    await callback.answer()
+    await callback.answer())
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_delivery_info(message: types.Message, state: FSMContext):
