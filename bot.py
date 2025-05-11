@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 # Telegram токен
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
-
+CREDENTIALS_FILE = 'credentials.json'
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
