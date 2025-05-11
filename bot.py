@@ -184,11 +184,58 @@ async def show_perfumes(call: types.CallbackQuery):
     )
     await call.message.answer("⬅️ Оберіть іншу категорію або поверніться:", reply_markup=nav_kb)
 
-@dp.callback_query_handler(lambda c: c.data == "promotions")
-async def show_promotions(call: types.CallbackQuery):
-    promo_text = "\n".join([f"- {k}: {v['description']}" for k, v in promotions.items() if k != "Без знижки"])
-    delivery_note = f"🚚 Безкоштовна доставка при замовленні від {FREE_DELIVERY_THRESHOLD} грн (інакше +{DELIVERY_COST} грн)"
-    await call.message.answer(f"🔥 Акції на сьогодні:\n{promo_text}\n\n{delivery_note}")
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_"))
+async def confirm_order_prompt(call: types.CallbackQuery):
+    uid = call.from_user.id
+    promo_key = call.data[6:]
+    data = user_data.get(uid, {})
+
+    if "cart" not in data or not data["cart"]:
+        await call.message.answer("❗ Ваш кошик порожній.")
+        return
+
+    user_data[uid]["promotion"] = promo_key
+    discount = promotions[promo_key]["discount"]
+
+    cart = data["cart"]
+    subtotal = sum(perfume_prices.get(name, 200) * qty for name, qty in cart.items())
+    discount_text = ""
+    discount_amount = 0
+
+    if promo_key == "1+1=Подарунок":
+        total_items = sum(cart.values())
+        free_items = total_items // 3
+        if free_items > 0:
+            cheapest_price = min(perfume_prices.get(name, 200) for name in cart)
+            discount_amount = cheapest_price * free_items
+            discount_text = f"\n🎁 Акція '1+1=Подарунок': -{discount_amount} грн"
+    elif promo_key == "Перший клієнт":
+        discount_amount = subtotal * 0.10
+        discount_text = f"\n🟢 Знижка 10%: -{int(discount_amount)} грн"
+    elif promo_key == "Парфум дня":
+        discount_amount = 20
+        discount_text = f"\n🌟 Знижка на аромат дня: -{discount_amount} грн"
+    elif promo_key == "Таємне слово":
+        discount_amount = 15
+        discount_text = f"\n🗝 Таємне слово: -{discount_amount} грн"
+
+    total = subtotal - discount_amount
+
+    if total < FREE_DELIVERY_THRESHOLD:
+        total += DELIVERY_COST
+        delivery_text = f"\n🚚 Доставка: +{DELIVERY_COST} грн"
+    else:
+        delivery_text = "\n🚚 Доставка: безкоштовно"
+
+    items_list = "\n".join([f"{qty} × {name} — {perfume_prices.get(name, 200) * qty} грн" for name, qty in cart.items()])
+    summary = f"🛍 Ваше замовлення:\n{items_list}\n\nСума: {subtotal} грн{discount_text}{delivery_text}\n\n💰 До оплати: {int(total)} грн"
+
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"),
+        InlineKeyboardButton("↩️ Назад", callback_data="view_cart")
+    )
+    await call.message.answer(summary, reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "order")
 async def start_order(call: types.CallbackQuery):
