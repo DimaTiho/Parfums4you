@@ -257,8 +257,7 @@ async def get_city(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data in ["delivery_address", "delivery_np"])
 async def ask_for_address(call: types.CallbackQuery):
-    method = "Адресна доставка" if call.data == "delivery_address"
-    else "Нова Пошта"
+    method = "Адресна доставка" if call.data == "delivery_address"else "Нова Пошта"
     user_data[call.from_user.id]["delivery_method"] = method
     note = "📍 Введіть місто та повну адресу доставки:" if method == "Адресна доставка" else "🏤 Введіть місто та номер відділення НП:"
     await call.message.answer(note + "‼️ Перевірте уважно правильність даних перед підтвердженням.")
