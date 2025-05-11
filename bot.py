@@ -61,12 +61,12 @@ user_data = {}
 
 # Стартове повідомлення та головне меню
 main_menu_buttons = [
-    [InlineKeyboardButton("Каталог парфум", callback_data="catalog")],
-    [InlineKeyboardButton("Акції та бонуси", callback_data="promotions")],
-    [InlineKeyboardButton("Знижка дня", callback_data="daily_discount")],
-    [InlineKeyboardButton("Як замовити?", callback_data="how_to_order")],
-    [InlineKeyboardButton("Відгуки", callback_data="reviews")],
-    [InlineKeyboardButton("Зв'язатися з менеджером", url="https://t.me/yourmanager")]
+    [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog")],
+    [InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
+    [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
+    [InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
+    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
@@ -87,8 +87,8 @@ async def how_to_order(message: types.Message):
 
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("Жіночі", callback_data="cat_women"), InlineKeyboardButton("Унісекс", callback_data="cat_unisex")],
-    [InlineKeyboardButton("Топ продаж", callback_data="cat_top")],
+    [InlineKeyboardButton("👩Жіночі", callback_data="cat_women"), InlineKeyboardButton("Унісекс", callback_data="cat_unisex")],
+    [InlineKeyboardButton("🔝Топ продаж", callback_data="cat_top")],
     [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
 ])
 
@@ -243,7 +243,50 @@ async def promo_conditions(call: types.CallbackQuery):
     await call.message.answer(conditions[call.data])
     await call.answer()
 
-# Додати товар до кошика
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def add_to_cart_callback(callback: types.CallbackQuery):
+    perfume_name = callback.data[4:]
+    user_id = callback.from_user.id
+    if user_id not in user_carts:
+        user_carts[user_id] = []
+    user_carts[user_id].append({"name": perfume_name, "price": 200})
+    buttons = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart")],
+        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")]
+    ])
+    await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data == "show_cart")
+async def show_cart_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    if not cart:
+        await callback.message.answer("🛒 Ваш кошик порожній.")
+        return
+    text = "*Ваш кошик:*
+"
+    total = 0
+    for i, item in enumerate(cart, 1):
+        text += f"{i}. {item['name']} - {item['price']} грн
+"
+        total += item['price']
+    text += f"
+💵 Загальна сума: {total} грн"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
+        [InlineKeyboardButton("🗑 Очистити кошик", callback_data="clear_cart")]
+    ])
+    await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data == "checkout")
+async def checkout_handler(callback: types.CallbackQuery):
+    await callback.message.answer("✍️ Введіть ваше *ім'я* для оформлення замовлення:")
+    await OrderStates.name.set()
+    await callback.answer()
+
+
 @dp.message_handler(lambda message: message.text.lower().startswith("додати "))
 async def add_to_cart(message: types.Message):
     user_id = message.from_user.id
