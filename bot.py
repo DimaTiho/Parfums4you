@@ -578,11 +578,5 @@ async def handle_start(message: types.Message):
         reply_markup=main_menu
     )
 
-@dp.message_handler(commands=["start"])
-async def start_handler(message: types.Message):
-    await message.answer(
-        "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
-    )
-
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
