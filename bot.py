@@ -152,7 +152,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
 *{p['name']}*
  "💸 Замість {p['price']} грн — лише {discounted_price} грн!"
 
-Встигніть скористатися пропозицією!"
+"Встигніть скористатися пропозицією!"
     buttons = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("➕ Додати зі знижкою", callback_data=f"discount_{p['name']}")],
         [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
