@@ -15,12 +15,30 @@ logging.basicConfig(level=logging.INFO)
 
 # Telegram токен
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
+GOOGLE_SHEET_NAME = 'Parfums'
 
 # Google Sheets авторизація
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(creds)
 sheet = client.open("Parfums").sheet1
+
+# === Google Sheets ===
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+client = gspread.authorize(creds)
+workbook = client.open(GOOGLE_SHEET_NAME)
+sheet = workbook.sheet1
+try:
+    analytics_sheet = workbook.worksheet("Аналітика")
+except:
+    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
+    analytics_sheet.update("A1", [["Показник", "Значення"],
+                                   ["Усього замовлень", ""],
+                                   ["Загальна сума", ""],
+                                   ["Загальний прибуток", ""],
+                                   ["Найпопулярніший аромат", ""]])
+
 
 # Ініціалізація бота і диспетчера
 bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
@@ -406,6 +424,92 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     text = "Введіть адресу доставки:" if delivery_type == "delivery_address" else "Введіть номер відділення та службу доставки:"
     await bot.send_message(callback.from_user.id, text)
     await OrderStates.address_or_post.set()
+
+# Обробка команди для оформлення замовлення
+@dp.message_handler(lambda message: message.text.lower() in ["оформити замовлення", "/order"])
+async def start_order(message: types.Message):
+    await message.answer("Введіть ваше *ім'я та прізвище*:")
+    await OrderStates.name.set()
+
+@dp.message_handler(state=OrderStates.name)
+async def get_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await message.answer("Введіть ваш *номер телефону* у форматі +380...")
+    await OrderStates.next()
+
+@dp.message_handler(state=OrderStates.phone)
+async def get_phone(message: types.Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await message.answer("Введіть *місто доставки*:")
+    await OrderStates.next()
+
+@dp.message_handler(state=OrderStates.city)
+async def get_city(message: types.Message, state: FSMContext):
+    await state.update_data(city=message.text)
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton("На відділення", callback_data="delivery_post"),
+        InlineKeyboardButton("Кур'єром на адресу", callback_data="delivery_address")
+    )
+    await message.answer("Оберіть *тип доставки*:", reply_markup=keyboard)
+    await OrderStates.next()
+
+@dp.callback_query_handler(state=OrderStates.delivery_type)
+async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
+    delivery_type = callback.data
+    await state.update_data(delivery_type=delivery_type)
+    if delivery_type == "delivery_post":
+        await callback.message.answer("Введіть *службу доставки* та *номер відділення* (наприклад: Нова Пошта 5):")
+    else:
+        await callback.message.answer("Введіть *повну адресу доставки*:")
+    await OrderStates.next()
+    await callback.answer()
+
+@dp.message_handler(state=OrderStates.address_or_post)
+async def get_address_or_post(message: types.Message, state: FSMContext):
+    await state.update_data(address_or_post=message.text)
+    data = await state.get_data()
+    order_summary = (
+        f"*Підтвердіть замовлення:*
+
+"
+        f"👤 Ім'я: {data['name']}
+"
+        f"📞 Телефон: {data['phone']}
+"
+        f"🏙 Місто: {data['city']}
+"
+        f"🚚 Доставка: {'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса'}
+"
+        f"📍 Деталі: {data['address_or_post']}
+"
+    )
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
+        InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
+    )
+    await message.answer(order_summary, reply_markup=keyboard)
+    await OrderStates.next()
+
+@dp.callback_query_handler(state=OrderStates.confirmation)
+async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
+    if callback.data == "confirm_order":
+        data = await state.get_data()
+        sheet.append_row([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            callback.from_user.id,
+            data['name'],
+            data['phone'],
+            data['city'],
+            'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса',
+            data['address_or_post']
+        ])
+        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
+    else:
+        await callback.message.answer("❌ Замовлення скасовано.")
+    await state.finish()
+    await callback.answer()
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_delivery_info(message: types.Message, state: FSMContext):
