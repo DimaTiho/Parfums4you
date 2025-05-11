@@ -312,13 +312,13 @@ async def remove_from_cart(message: types.Message):
 @dp.message_handler(state=OrderStates.name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer("Введіть ваш *номер телефону*:")
+    await message.answer("Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_name")]]))
     await OrderStates.phone.set()
 
 @dp.message_handler(state=OrderStates.phone)
 async def get_phone(message: types.Message, state: FSMContext):
     await state.update_data(phone=message.text)
-    await message.answer("Введіть ваше *місто*:")
+    await message.answer("Введіть ваше *місто*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_phone")]]))
     await OrderStates.city.set()
 
 @dp.message_handler(state=OrderStates.city)
@@ -328,17 +328,17 @@ async def get_city(message: types.Message, state: FSMContext):
         [InlineKeyboardButton("📦 На відділення", callback_data="delivery_branch")],
         [InlineKeyboardButton("🚚 Адресна доставка", callback_data="delivery_address")]
     ])
-    await message.answer("Оберіть тип доставки:", reply_markup=buttons)
+    await message.answer("Оберіть тип доставки:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons.inline_keyboard + [[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_city")]]))
     await OrderStates.delivery_type.set()
 
 @dp.callback_query_handler(state=OrderStates.delivery_type)
 async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "delivery_branch":
         await state.update_data(delivery_type="Відділення")
-        await bot.send_message(callback.from_user.id, "Введіть номер відділення:")
+        await bot.send_message(callback.from_user.id, "Введіть номер відділення:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись", callback_data="back_delivery_type")]]))
     else:
         await state.update_data(delivery_type="Адресна доставка")
-        await bot.send_message(callback.from_user.id, "Введіть адресу доставки:")
+        await bot.send_message(callback.from_user.id, "Введіть адресу доставки:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись", callback_data="back_delivery_type")]]))
     await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -514,6 +514,22 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
 async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
     await bot.send_message(callback.from_user.id, "❌ Замовлення скасовано.")
     await state.finish()
+
+@dp.message_handler(commands=["start"])
+async def handle_start(message: types.Message):
+    await bot.send_photo(
+        chat_id=message.chat.id,
+        photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
+        caption=(
+            "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
+            "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
+            "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n\n"
+            "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n\n"
+            "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
+            "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
+        ),
+        reply_markup=main_menu
+    )
 
 @dp.message_handler()
 async def prompt_start(message: types.Message):
