@@ -148,7 +148,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     discounted_price = int(p['price'] * 0.5)
     caption = f"*Знижка дня!*"
 
-Сьогодні у нас акція на:
+"Сьогодні у нас акція на:"
 *{p['name']}*
  "💸 Замість {p['price']} грн — лише {discounted_price} грн!"
 
