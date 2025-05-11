@@ -10,8 +10,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import random
 
-print([sheet.title for sheet in client.openall()])
-
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
 
