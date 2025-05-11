@@ -515,5 +515,6 @@ async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
     await bot.send_message(callback.from_user.id, "❌ Замовлення скасовано.")
     await state.finish()
 
+
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
