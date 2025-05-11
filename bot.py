@@ -20,7 +20,7 @@ BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(creds)
-sheet = client.open("Parfum").sheet1
+sheet = client.open("Parfums").sheet1
 
 # Ініціалізація бота і диспетчера
 bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
@@ -181,8 +181,9 @@ async def handle_reviews(message: types.Message):
     if message.text and message.text.startswith("/"):
         return  # пропустити команди
 
-    user_id = message.from_user.id
-    if user_id in used_promo_users:
+    global used_promo_users
+    if 'used_promo_users' not in globals():
+    used_promo_users = set()
         await message.reply("Дякуємо за відгук! Ви вже отримали промокод.")
         return
 
