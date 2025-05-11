@@ -117,7 +117,7 @@ async def show_catalog(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "main_menu")
 async def back_to_main(callback: types.CallbackQuery):
-    await bot.send_photo()
+    await bot.send_photo(
     chat_id=callback.message.chat.id,
     photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
     caption=(
@@ -126,8 +126,10 @@ async def back_to_main(callback: types.CallbackQuery):
         "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
         "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
         "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
-        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.",
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
+    ),
         reply_markup:=main_menu
+      await callback.answer()
     )
 # Знижка дня
 daily_discount = {}
@@ -153,7 +155,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     f"💸 Замість {p['price']} грн — лише {discounted_price} грн!\n\n"
 
 "Встигніть скористатися пропозицією!"
-    buttons=InlineKeyboardMarkup(inline_keyboard=[
+   buttons=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("➕ Додати зі знижкою", callback_data=f"discount_{p['name']}")],
         [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
     ])
