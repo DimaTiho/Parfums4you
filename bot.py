@@ -20,7 +20,7 @@ BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(creds)
-sheet = client.open("Parfums").sheet1
+sheet = client.open("Parfum").sheet1
 
 # Ініціалізація бота і диспетчера
 bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
