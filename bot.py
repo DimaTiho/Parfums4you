@@ -181,14 +181,12 @@ async def handle_reviews(message: types.Message):
     if message.text and message.text.startswith("/"):
         return  # пропустити команди
 
-    global used_promo_users
-    if 'used_promo_users' not in globals():
-    used_promo_users = set()
+    user_id = message.from_user.id
+    if user_id in used_promo_users:
         await message.reply("Дякуємо за відгук! Ви вже отримали промокод.")
         return
-
-
-    # Відповідь з промокодом
+      
+# Відповідь з промокодом
     promo = PROMO_CODES.pop() if PROMO_CODES else "THANKYOU5"
     used_promo_users.add(user_id)
     await message.reply(f"Дякуємо за відгук! 🎁 Ось ваш персональний промокод: *{promo}*\nВикористовуйте його при наступному замовленні.")
