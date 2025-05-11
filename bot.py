@@ -118,7 +118,7 @@ async def show_catalog(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "main_menu")
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
-    chat_id=message.chat.id,
+    chat_id=callback.message.chat.id,
     photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
     caption=(
         "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
