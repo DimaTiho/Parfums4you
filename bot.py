@@ -206,7 +206,12 @@ async def promotions_handler(message: types.Message):
         "4️⃣ *Набір зі знижкою -15%*\n"
         "При покупці 3+ парфумів — знижка 15% на кожен."
     )
-
+    if isinstance(message_or_callback, types.Message):
+        await message_or_callback.answer(promo_text, reply_markup=main_menu)
+    elif isinstance(message_or_callback, types.CallbackQuery):
+        await message_or_callback.message.edit_text(promo_text, reply_markup=main_menu)
+        await message_or_callback.answer()
+      
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
