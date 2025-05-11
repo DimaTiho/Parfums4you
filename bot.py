@@ -48,7 +48,16 @@ class OrderStates(StatesGroup):
     confirmation = State()
 
 # Тимчасове збереження кошика
-user_carts = {}
+user_carts = 
+
+
+# === Акція: 3-й парфум зі знижкою 50% ===
+def apply_third_item_discount(cart):
+    if len(cart) >= 3:
+        sorted_cart = sorted(cart, key=lambda x: x['price'])
+        sorted_cart[2]['price'] = round(sorted_cart[2]['price'] * 0.5, 2)
+    return cart
+{}
 user_discounts = {}
 user_data = {}
 
@@ -199,7 +208,7 @@ async def handle_reviews(message: types.Message):
         return
       
 # Відповідь з промокодом
-    promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10", "DISCOUNT15", "SALE20"
+    promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10"
     used_promo_users.add(user_id)
     await message.reply(f"Дякуємо за відгук! 🎁 Ось ваш персональний промокод: *{promo}*\nВикористовуйте його при наступному замовленні.")
 
@@ -208,8 +217,9 @@ async def handle_reviews(message: types.Message):
 async def promotions_handler(message: types.Message):
     promo_text = (
         "🎉 *Наявні акції:*\n\n"
-        "1️⃣ *3-й парфум у подарунок*\n"
-        "Купіть 2 будь-які парфуми — третій отримаєте безкоштовно\n\n"
+        "1️⃣ *3-й парфум зі знижкою -50%*
+"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n\n"
         "2️⃣ *Безкоштовна доставка від 500 грн*\n"
         "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!\n\n"
         "3️⃣ *Знижка для подруг — 10% кожній!*\n"
@@ -236,9 +246,9 @@ async def promotions_handler(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
 async def promo_conditions(call: types.CallbackQuery):
     conditions = {
-        "promo_cond_1": "🎉 *3-й парфум у подарунок*"
-"Купіть 2 будь-які парфуми — третій отримаєте безкоштовно."
-"Доставка не входить в облік вартості подарунка",
+        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*
+Купіть будь-які 2 парфуми та отримайте третій зі знижкою 50%.
+Знижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
         "promo_cond_2": "🚚 *Безкоштовна доставка від 500 грн*"
 "Загальна сума без урахування доставки має перевищувати 500 грн.",
         "promo_cond_3": "👭 *Знижка для подруг — 10% кожній!*"
@@ -395,24 +405,6 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     sheet.append_row([now, user_id, data['name'], data['phone'], data['city'], data['delivery_type'], data['address_or_post'], ", ".join(cart), final_total])
     await bot.send_message(user_id, f"✅ Замовлення підтверджено! Загальна сума: {final_total} грн. Дякуємо за покупку!")
     await state.finish()
-@dp.message_handler(commands=["cart"])
-async def view_cart(message: types.Message):
-    user_id = message.from_user.id
-    cart = user_carts.get(user_id, [])
-    if not cart:
-        await message.answer("🛒 Ваш кошик порожній.")
-        return
-
-    text = "🛍 *Ваш кошик:*\n\n"
-    for i, item in enumerate(cart, 1):
-        text += f"{i}. {item}\n"
-
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Очистити кошик", callback_data="clear_cart")]
-    ])
-    await message.answer(text, reply_markup=keyboard)
-# Обробка команди для оформлення замовлення
 @dp.message_handler(lambda message: message.text.lower() in ["оформити замовлення", "/order"])
 async def start_order(message: types.Message):
     await message.answer("Введіть ваше *ім'я та прізвище*:")
@@ -508,6 +500,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         user_id = callback.from_user.id
 
         cart_items = user_carts.get(user_id, [])
+        cart_items = apply_third_item_discount(cart_items)
         order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
         total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
         discount = user_discounts.get(user_id, 0)
