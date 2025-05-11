@@ -17,12 +17,11 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
-
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
 client = gspread.authorize(creds)
-workbook = client.open(CREDENTIALS_FILE)
+workbook = client.open(Parfums)
 sheet = workbook.sheet1
 try:
     analytics_sheet = workbook.worksheet("Аналітика")
@@ -200,7 +199,7 @@ async def handle_reviews(message: types.Message):
         return
       
 # Відповідь з промокодом
-    promo = PROMO_CODES.pop() if PROMO_CODES else "THANKYOU5"
+    promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10", "DISCOUNT15", "SALE20"
     used_promo_users.add(user_id)
     await message.reply(f"Дякуємо за відгук! 🎁 Ось ваш персональний промокод: *{promo}*\nВикористовуйте його при наступному замовленні.")
 
