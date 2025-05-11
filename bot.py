@@ -85,20 +85,7 @@ async def how_to_order(message: types.Message):
     )
     await message.answer(instructions)
 
-@dp.message_handler(commands=["start"])
-async def start_handler(message: types.Message):
-    await message.answer(
-        "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
-    )
-    await message.answer(
-        "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
-        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
-        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
-        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
-        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.",
-        reply_markup=main_menu
-    )
+
 
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
@@ -137,7 +124,7 @@ async def handle_category(callback: types.CallbackQuery):
 async def show_catalog(callback: types.CallbackQuery):
     await callback.message.edit_text("Оберіть категорію парфумів:", reply_markup=catalog_menu)
 
-@dp.callback_query_handler(lambda c: c.data == "main_menu")
+@dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
     chat_id=callback.message.chat.id,
