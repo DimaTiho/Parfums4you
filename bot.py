@@ -17,11 +17,12 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 GOOGLE_SHEET_NAME = 'Parfums'
 CREDENTIALS_FILE = 'credentials.json'
+
 # === Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
 client = gspread.authorize(creds)
-workbook = client.open(Parfums)
+workbook = client.open(CREDENTIALS_FILE)
 sheet = workbook.sheet1
 try:
     analytics_sheet = workbook.worksheet("Аналітика")
