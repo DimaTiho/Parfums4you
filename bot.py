@@ -10,6 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import random
 
+
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
 
