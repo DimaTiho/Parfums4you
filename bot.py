@@ -129,8 +129,8 @@ async def back_to_main(callback: types.CallbackQuery):
         "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
     ),
         reply_markup:=main_menu,
-      await callback.answer()
     )
+      await callback.answer()
 # Знижка дня
 daily_discount = {}
 last_discount_update = None
