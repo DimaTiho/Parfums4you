@@ -10,6 +10,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import random
 
+print([sheet.title for sheet in client.openall()])
+
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
 
@@ -320,10 +322,7 @@ async def remove_from_cart(message: types.Message):
         await message.answer("❗ Введіть команду у форматі: Видалити 1")
 
 # === Оформлення замовлення ===
-@dp.message_handler(commands=["order"])
-async def start_order(message: types.Message):
-    await message.answer("Введіть ваше *ім’я*:")
-    await OrderStates.name.set()
+
 
 @dp.message_handler(state=OrderStates.name)
 async def get_name(message: types.Message, state: FSMContext):
@@ -402,7 +401,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     sheet.append_row([now, user_id, data['name'], data['phone'], data['city'], data['delivery_type'], data['address_or_post'], ", ".join(cart), final_total])
     await bot.send_message(user_id, f"✅ Замовлення підтверджено! Загальна сума: {final_total} грн. Дякуємо за покупку!")
     await state.finish()
-@dp.message_handler(lambda message: message.text.lower() in ["оформити замовлення", "/order"])
+@dp.message_handler(commands=["order"])
 async def start_order(message: types.Message):
     await message.answer("Введіть ваше *ім'я та прізвище*:")
     await OrderStates.name.set()
@@ -524,32 +523,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await callback.answer()
 
-@dp.message_handler(state=OrderStates.address_or_post)
-async def get_delivery_info(message: types.Message, state: FSMContext):
-    await state.update_data(address_or_post=message.text)
-    data = await state.get_data()
-    user_id = message.from_user.id
-    cart = user_carts.get(user_id, [])
 
-    # Зберігаємо в таблицю
-    order_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-    sheet.append_row([
-        str(user_id),
-        data['name'],
-        data['phone'],
-        data['city'],
-        "Адресна" if data['delivery_type'] == "delivery_address" else "Відділення",
-        data['address_or_post'],
-        ', '.join(cart),
-        order_time,
-        ""
-    ])
-
-    # Очистити кошик після замовлення
-    user_carts[user_id] = []
-
-    await message.answer("✅ Замовлення прийнято! Очікуйте на повідомлення з номером ТТН.")
-    await state.finish()
 
 @dp.callback_query_handler(lambda c: c.data == "cancel_order", state=OrderStates.confirmation)
 async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
