@@ -127,7 +127,8 @@ async def start_handler(message: types.Message):
     await message.answer(
         "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
     )
-@dp.callback_query_handler(lambda c: c.data == "main_menu")
+
+@dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
     chat_id=callback.message.chat.id,
@@ -561,21 +562,10 @@ async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 @dp.message_handler(commands=["start"])
-async def handle_start(message: types.Message):
-    await bot.send_photo(
-        chat_id=message.chat.id,
-        photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
-        caption=(
-            "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-            "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
-            "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n\n"
-            "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n\n"
-            "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
-            "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
-        ),
-        reply_markup=main_menu
+async def start_handler(message: types.Message):
+    await message.answer(
+        "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
     )
-
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
