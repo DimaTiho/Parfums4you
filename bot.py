@@ -192,7 +192,7 @@ async def handle_reviews(message: types.Message):
 # Блок: Акції та бонуси
 @dp.message_handler(lambda message: message.text == "Акції та бонуси")
 async def promotions_handler(message: types.Message):
-    promo_text = "🎉 *Наявні акції:*
+    promo_text = "🎉 *Наявні акції:*"
 
 1️⃣ *3-й парфум у подарунок*
 Купіть 2 будь-які парфуми — третій отримаєте безкоштовно
