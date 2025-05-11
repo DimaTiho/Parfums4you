@@ -381,50 +381,6 @@ async def view_cart(message: types.Message):
         [InlineKeyboardButton("🗑 Очистити кошик", callback_data="clear_cart")]
     ])
     await message.answer(text, reply_markup=keyboard)
-
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    user_carts[user_id] = []
-    await callback.answer("Кошик очищено!")
-    await callback.message.edit_text("🛒 Ваш кошик очищено.")
-
-@dp.callback_query_handler(lambda c: c.data == "checkout")
-async def start_checkout(callback: types.CallbackQuery):
-    await callback.message.edit_text("✍️ Введіть ваше ім’я:")
-    await OrderStates.name.set()
-
-@dp.message_handler(state=OrderStates.name)
-async def get_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer("📞 Введіть ваш номер телефону:")
-    await OrderStates.phone.set()
-
-@dp.message_handler(state=OrderStates.phone)
-async def get_phone(message: types.Message, state: FSMContext):
-    await state.update_data(phone=message.text)
-    await message.answer("🏙 Введіть місто доставки:")
-    await OrderStates.city.set()
-
-@dp.message_handler(state=OrderStates.city)
-async def get_city(message: types.Message, state: FSMContext):
-    await state.update_data(city=message.text)
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("📦 Відділення", callback_data="delivery_branch"),
-        InlineKeyboardButton("🚪 Адресна доставка", callback_data="delivery_address")
-    )
-    await message.answer("Оберіть тип доставки:", reply_markup=kb)
-    await OrderStates.delivery_type.set()
-
-@dp.callback_query_handler(state=OrderStates.delivery_type)
-async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
-    delivery_type = callback.data
-    await state.update_data(delivery_type=delivery_type)
-    text = "Введіть адресу доставки:" if delivery_type == "delivery_address" else "Введіть номер відділення та службу доставки:"
-    await bot.send_message(callback.from_user.id, text)
-    await OrderStates.address_or_post.set()
-
 # Обробка команди для оформлення замовлення
 @dp.message_handler(lambda message: message.text.lower() in ["оформити замовлення", "/order"])
 async def start_order(message: types.Message):
@@ -459,18 +415,38 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     delivery_type = callback.data
     await state.update_data(delivery_type=delivery_type)
     if delivery_type == "delivery_post":
-        await callback.message.answer("Введіть *службу доставки* та *номер відділення* (наприклад: Нова Пошта 5):")
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            InlineKeyboardButton("Нова Пошта", callback_data="nova_post"),
+            InlineKeyboardButton("Укрпошта", callback_data="ukr_post")
+        )
+        await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
     else:
         await callback.message.answer("Введіть *повну адресу доставки*:")
-    await OrderStates.next()
+        await OrderStates.address_or_post.set()
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.delivery_type)
+async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
+    await state.update_data(post_service=callback.data)
+    await callback.message.answer("Введіть *номер або назву відділення*:")
+    await OrderStates.address_or_post.set()
     await callback.answer()
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_address_or_post(message: types.Message, state: FSMContext):
-    await state.update_data(address_or_post=message.text)
+    data = await state.get_data()
+    delivery_type = data['delivery_type']
+    if delivery_type == "delivery_post":
+        post_service = data.get('post_service', '-')
+        address_or_post = f"{post_service.upper()} {message.text}"
+    else:
+        address_or_post = message.text
+
+    await state.update_data(address_or_post=address_or_post)
     data = await state.get_data()
     order_summary = (
-        f"*Підтвердіть замовлення:*"
+         f"*Підтвердіть замовлення:*"
         f"👤 Ім'я: {data['name']}\n\n"
         f"📞 Телефон: {data['phone']}\n\n"
         f"🏙 Місто: {data['city']}\n\n"
@@ -483,26 +459,49 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
     )
     await message.answer(order_summary, reply_markup=keyboard)
-    await OrderStates.next()
+    await OrderStates.confirmation.set()
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
 async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "confirm_order":
         data = await state.get_data()
+
+        now = datetime.now()
+        date = now.strftime("%Y-%m-%d")
+        time = now.strftime("%H:%M:%S")
+        name = data['name']
+        phone = data['phone']
+        city = data['city']
+        delivery_type = 'Відділення' if data['delivery_type'] == 'delivery_post' else 'Адреса'
+        address = data['address_or_post']
+        user_id = callback.from_user.id
+
+        cart_items = user_carts.get(user_id, [])
+        order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
+        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
+        discount = user_discounts.get(user_id, 0)
+        final_price = total_sum - discount
+
         sheet.append_row([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            callback.from_user.id,
-            data['name'],
-            data['phone'],
-            data['city'],
-            'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса',
-            data['address_or_post']
+            date,
+            time,
+            name,
+            phone,
+            city,
+            delivery_type,
+            address,
+            order_description,
+            final_price,
+            discount,
+            user_id,
+            ""
         ])
+
         await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
     else:
         await callback.message.answer("❌ Замовлення скасовано.")
     await state.finish()
-    await callback.answer()
+    await callback.answer())
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_delivery_info(message: types.Message, state: FSMContext):
