@@ -122,12 +122,6 @@ async def handle_category(callback: types.CallbackQuery):
 async def show_catalog(callback: types.CallbackQuery):
     await callback.message.edit_text("Оберіть категорію парфумів:", reply_markup=catalog_menu)
 
-@dp.message_handler(commands=["start"])
-async def start_handler(message: types.Message):
-    await message.answer(
-        "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
-    )
-
 @dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
