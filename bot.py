@@ -264,18 +264,16 @@ async def show_cart_callback(callback: types.CallbackQuery):
     if not cart:
         await callback.message.answer("🛒 Ваш кошик порожній.")
         return
-    text = "*Ваш кошик:*
-"
+    text = "*Ваш кошик:*"
     total = 0
     for i, item in enumerate(cart, 1):
-        text += f"{i}. {item['name']} - {item['price']} грн
-"
+        text += f"{i}. {item['name']} - {item['price']} грн"
         total += item['price']
     text += f"
 💵 Загальна сума: {total} грн"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Очистити кошик", callback_data="clear_cart")]
+        [InlineKeyboardButton("❌ Очистити кошик", callback_data="clear_cart")]
     ])
     await callback.message.answer(text, reply_markup=keyboard)
     await callback.answer()
