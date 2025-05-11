@@ -122,7 +122,7 @@ async def handle_category(callback: types.CallbackQuery):
 async def show_catalog(callback: types.CallbackQuery):
     await callback.message.edit_text("Оберіть категорію парфумів:", reply_markup=catalog_menu)
 
-@dp.callback_query_handler(lambda c: c.data == "main_menu" or c.data == "start")
+@dp.callback_query_handler(lambda c: c.data == "main_menu")
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
     chat_id=callback.message.chat.id,
@@ -571,9 +571,11 @@ async def handle_start(message: types.Message):
         reply_markup=main_menu
     )
 
-@dp.message_handler()
-async def prompt_start(message: types.Message):
-    await message.answer("❗ Щоб почати, натисніть /start або кнопку *«Головне меню»*.")
+@dp.message_handler(commands=["start"])
+async def start_handler(message: types.Message):
+    await message.answer(
+        "Привіт, я твій чат-бот, щоб мене запустити натисни /start",
+    )
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
