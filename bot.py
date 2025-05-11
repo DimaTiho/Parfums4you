@@ -269,7 +269,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
     for i, item in enumerate(cart, 1):
         text += f"{i}. {item['name']} - {item['price']} грн"
         total += item['price']
-    text += f"
+    text += f""
 💵 Загальна сума: {total} грн"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
