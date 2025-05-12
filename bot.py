@@ -478,14 +478,45 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
     await state.update_data(address_or_post=address_or_post)
     data = await state.get_data()
+    user_id = message.from_user.id
+    cart = user_carts.get(user_id, [])
+    cart = apply_third_item_discount(cart)
+
+    text_items = ""
+    total = 0
+    for i, item in enumerate(cart, 1):
+        text_items += f"{i}. {item['name']} — {item['price']} грн
+"
+        total += item['price']
+
+    discount = user_discounts.get(user_id, 0)
+    final = total - discount
+
     order_summary = (
-         f"*Підтвердіть замовлення:*"
-        f"👤 Ім'я: {data['name']}\n\n"
-        f"📞 Телефон: {data['phone']}\n\n"
-        f"🏙 Місто: {data['city']}\n\n"
-        f"🚚 Доставка: {'Відділення' if data['delivery_type']=='delivery_post' else 'Адреса'}\n\n"
-        f"📍 Деталі: {data['address_or_post']}\n\n"
+        f"📦 *Перевірте замовлення перед підтвердженням:*
+
+"
+        f"👤 *Ім’я:* {data['name']}
+"
+        f"📞 *Телефон:* {data['phone']}
+"
+        f"🏙 *Місто:* {data['city']}
+"
+        f"🚚 *Тип доставки:* {'Відділення' if delivery_type == 'delivery_post' else 'Адресна'}
+"
+        f"📍 *Адреса / Відділення:* {data['address_or_post']}
+
+"
+        f"🛍 *Товари в кошику:*
+{text_items}
+"
+        f"💵 *Сума без знижок:* {total} грн
+"
+        f"🎁 *Знижка:* {discount} грн
+"
+        f"✅ *До сплати:* {final} грн"
     )
+
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
