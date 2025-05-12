@@ -642,5 +642,5 @@ async def track_pending_orders(message: types.Message):
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.create_task(notify_ttn())  # запуск відстеження ТТН
+    loop.create_task(check_for_ttn_and_notify())
     executor.start_polling(dp, skip_updates=True)
