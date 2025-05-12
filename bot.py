@@ -211,7 +211,9 @@ async def receive_review(message: types.Message, state: FSMContext):
     if user_id in used_promo_users:
         await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
     else:
-        promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10"
+        promo = PROMO_CODES.pop() 
+    if PROMO_CODES 
+    else "PROMO10"
         used_promo_users.add(user_id)
         await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
     await state.finish()
