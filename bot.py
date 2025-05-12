@@ -632,8 +632,7 @@ async def track_pending_orders(message: types.Message):
             status = row[12].strip() if len(row) > 12 else ""
 
             if chat_id.isdigit() and ttn and not status:
-                await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!
-Номер накладної: *{ttn}*")
+                await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
                 sheet.update_cell(i, 13, "✅ надіслано")
                 await asyncio.sleep(1)
 
