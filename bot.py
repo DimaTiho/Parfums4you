@@ -211,7 +211,10 @@ async def receive_review(message: types.Message, state: FSMContext):
     if user_id in used_promo_users:
         await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
     else:
-        promo = PROMO_CODES.pop() if PROMO_CODES else "PROMO10"
+        if PROMO_CODES:
+        promo = PROMO_CODES.pop()
+    else:
+        promo = "PROMO10""
         used_promo_users.add(user_id)
         await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
     await state.finish()
@@ -523,12 +526,12 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"👤 *Ім’я:* {data['name']}"
         f"📞 *Телефон:* {data['phone']}"
         f"🏙 *Місто:* {data['city']}"
-        f"🚚 *Тип доставки:* {'Відділення' if delivery_type == 'delivery_post' else 'Адресна'}"
         f"📍 *Адреса / Відділення:* {data['address_or_post']}"
         f"🛍 *Товари в кошику:*{text_items}"
         f"💵 *Сума без знижок:* {total} грн"
         f"🎁 *Знижка:* {discount} грн"
-        f"✅ *До сплати:* {final} грн")
+        f"✅ *До сплати:* {final} грн"
+    )
   
 
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -550,7 +553,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         name = data['name']
         phone = data['phone']
         city = data['city']
-        delivery_type = 'Відділення' if data['delivery_type'] == 'delivery_post' else 'Адреса'
+        delivery_type = ''  # Вилучено тип доставки для збереження читабельності
         address = data['address_or_post']
         user_id = callback.from_user.id
 
