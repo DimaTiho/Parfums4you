@@ -266,17 +266,64 @@ async def show_cart_callback(callback: types.CallbackQuery):
     if not cart:
         await callback.message.answer("🛒 Ваш кошик порожній.")
         return
-    text = "*Ваш кошик:*"
+
+    text = "*Ваш кошик:*
+"
     total = 0
-    for i, item in enumerate(cart, 1):
-        text += f"{i}. {item['name']} - {item['price']} грн"
-        total += item['price']
-    text += f"💵 Загальна сума: {total} грн"
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"), InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")],
-        [InlineKeyboardButton("❌ Очистити кошик", callback_data="clear_cart")]
-    ])
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    counted = {}
+    for item in cart:
+        key = item['name']
+        if key in counted:
+            counted[key]['count'] += 1
+            counted[key]['total'] += item['price']
+        else:
+            counted[key] = {'price': item['price'], 'count': 1, 'total': item['price']}
+
+    i = 1
+    for name, details in counted.items():
+        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн
+"
+        keyboard.add(
+            InlineKeyboardButton(f"➖", callback_data=f"decrease_{name}"),
+            InlineKeyboardButton(f"➕", callback_data=f"increase_{name}")
+        )
+        total += details['total']
+        i += 1
+
+    text += f"
+💵 Загальна сума: {total} грн"
+    keyboard.add(
+        InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
+        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu"),
+        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
+    )
     await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data.startswith("increase_"))
+async def increase_item_quantity(callback: types.CallbackQuery):
+    name = callback.data.replace("increase_", "")
+    user_id = callback.from_user.id
+    user_carts.setdefault(user_id, []).append({"name": name, "price": 200})
+    await show_cart_callback(callback)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("decrease_"))
+async def decrease_item_quantity(callback: types.CallbackQuery):
+    name = callback.data.replace("decrease_", "")
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    for i, item in enumerate(cart):
+        if item["name"] == name:
+            cart.pop(i)
+            break
+    await show_cart_callback(callback)
+
+@dp.callback_query_handler(lambda c: c.data == "clear_cart")
+async def clear_cart_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    user_carts[user_id] = []
+    await callback.message.answer("🧹 Кошик очищено.")
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "checkout")
@@ -417,7 +464,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
         await OrderStates.address_or_post.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.delivery_type)
+@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"])
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post_service=callback.data)
     await callback.message.answer("Введіть *номер або назву відділення*:")
