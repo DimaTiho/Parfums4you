@@ -278,10 +278,12 @@ async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.")
+        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
         return
 
-    text = "*Ваш кошик:*"
+    cart = apply_third_item_discount(cart)
+    text = "*Ваш кошик:*
+"
     total = 0
     keyboard = InlineKeyboardMarkup(row_width=2)
     counted = {}
@@ -295,7 +297,8 @@ async def show_cart_callback(callback: types.CallbackQuery):
 
     i = 1
     for name, details in counted.items():
-        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн"
+        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн
+"
         keyboard.add(
             InlineKeyboardButton(f"➖", callback_data=f"decrease_{name}"),
             InlineKeyboardButton(f"➕", callback_data=f"increase_{name}")
@@ -303,7 +306,16 @@ async def show_cart_callback(callback: types.CallbackQuery):
         total += details['total']
         i += 1
 
-    text += f"💵 Загальна сума: {total} грн"
+    discount = user_discounts.get(user_id, 0)
+    final_price = total - discount
+    text += f"
+💵 Сума без знижок: {total} грн"
+    if discount:
+        text += f"
+🎁 Знижка: {discount} грн"
+        text += f"
+✅ До сплати: {final_price} грн"
+
     keyboard.add(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
         InlineKeyboardButton("🔙 Повернення", callback_data="main_menu"),
@@ -424,11 +436,7 @@ async def get_phone(message: types.Message, state: FSMContext):
     await message.answer("Введіть *місто доставки*:")
     await OrderStates.next()
 
-@dp.message_handler(state=OrderStates.phone)
-async def get_phone(message: types.Message, state: FSMContext):
-    await state.update_data(phone=message.text)
-    await message.answer("Введіть *місто доставки*:")
-    await OrderStates.next()
+
 
 @dp.message_handler(state=OrderStates.city)
 async def get_city(message: types.Message, state: FSMContext):
