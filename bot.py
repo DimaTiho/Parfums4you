@@ -402,17 +402,19 @@ async def get_address(message: types.Message, state: FSMContext):
 @dp.message_handler(commands=["track_ttns"])
 async def track_pending_orders(message: types.Message):
     all_data = sheet.get_all_values()
-    for i, row in enumerate(all_data[1:], start=2):  # пропускаємо заголовок, індексація з 2
-        if len(row) >= 10 and not row[9].strip():  # якщо ТТН ще не заповнено
-            try:
-                chat_id = int(row[1])
-                await asyncio.sleep(2)  # невелика затримка між запитами
-                current_row = sheet.row_values(i)
-                if len(current_row) >= 10 and current_row[9].strip():
-                    ttn = current_row[9].strip()
-                    await bot.send_message(chat_id, f"📦 Ваше замовлення надіслано!\nНомер накладної: *{ttn}*")
-            except Exception as e:
-                logging.error(f"Помилка при надсиланні ТТН: {e}")
+    for i, row in enumerate(all_data[1:], start=2):
+        if len(row) >= 13:
+            chat_id = row[10].strip()
+            ttn = row[11].strip()
+            status = row[12].strip() if len(row) > 12 else ""
+            if ttn and not status:
+                try:
+                    await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!
+Номер накладної: *{ttn}*")
+                    sheet.update_cell(i, 13, "✅ надіслано")
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    logging.error(f"Помилка при надсиланні ТТН: {e}")
 
 
 async def start_order(message: types.Message):
