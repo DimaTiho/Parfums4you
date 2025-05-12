@@ -472,7 +472,7 @@ async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
     await OrderStates.city.set()
     await callback.answer()
 
-@dp.callback_query_handler(state=OrderStates.delivery_type)
+@dp.callback_query_handler(lambda c: c.data in ["delivery_post", "delivery_address"], state=OrderStates.delivery_type)
 async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     delivery_type = callback.data
     await state.update_data(delivery_type=delivery_type)
