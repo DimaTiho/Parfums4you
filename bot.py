@@ -305,8 +305,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
 
     discount = user_discounts.get(user_id, 0)
     final_price = total - discount
-    text += f"
-💵 Сума без знижок: {total} грн"
+    text += f"💵 Сума без знижок: {total} грн"
     if discount:
         text += f"🎁 Знижка: {discount} грн"
         text += f"✅ До сплати: {final_price} грн"
