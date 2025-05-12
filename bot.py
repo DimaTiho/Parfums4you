@@ -365,7 +365,7 @@ async def clear_cart_callback(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "checkout")
 async def checkout_handler(callback: types.CallbackQuery):
-    await callback.message.answer("✍️ Введіть ваше *ім'я* для оформлення замовлення:")
+    await callback.message.answer("✍️ Введіть ваше *ПІБ* для оформлення замовлення:")
     await OrderStates.name.set()
     await callback.answer()
 
@@ -483,7 +483,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
     else:
-        await callback.message.answer("🏡 Введіть *повну адресу доставки* кур'єром:")
+        await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -553,7 +553,7 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         phone = data['phone']
         city = data['city']
         delivery_type = data.get('post_service', 'Адреса') if data['delivery_type'] == 'delivery_post' else 'Адреса'
-        address = message.text if data['delivery_type'] == 'delivery_address' else data.get('address_or_post', '-')
+        address = data.get('address_or_post', '-')
         user_id = callback.from_user.id
 
         cart_items = user_carts.get(user_id, [])
@@ -564,19 +564,22 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         final_price = total_sum - discount
 
         sheet.append_row([
-        date,
-        time,
-        name,
-        phone,
-        city,
+            date,
+            time,
+            name,
+            phone,
+            city,
+            delivery_type,
+            address,
             order_description,
-            final_price,
+            total_sum,
             discount,
             user_id,
             ""
         ])
 
         await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
+        user_carts[user_id] = []
     else:
         await callback.message.answer("❌ Замовлення скасовано.")
     await state.finish()
