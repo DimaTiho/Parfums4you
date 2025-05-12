@@ -491,7 +491,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"])
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post_service=callback.data)
-    await callback.message.answer("Введіть *номер або назву відділення*:")
+    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
     await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -499,11 +499,11 @@ async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
 async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     delivery_type = data['delivery_type']
+    
     if delivery_type == "delivery_post" and not message.text.isdigit():
         await message.answer("❗ Введіть лише номер відділення цифрами.")
         return
-    data = await state.get_data()
-    delivery_type = data['delivery_type']
+
     if delivery_type == "delivery_post":
         post_service = data.get('post_service', '-')
         address_or_post = f"{post_service.upper()} {message.text}"
@@ -511,6 +511,9 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         address_or_post = message.text
 
     await state.update_data(address_or_post=address_or_post)
+
+    # Далі: формування order_summary, підтвердження, запис у таблицю
+)
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
