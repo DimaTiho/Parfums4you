@@ -639,8 +639,8 @@ async def track_pending_orders(message: types.Message):
         except Exception as e:
             logging.error(f"❌ Помилка в рядку {i}: {e}")
 
+async def on_startup(_):
+    asyncio.create_task(check_for_ttn_updates())
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(check_for_ttn_and_notify())
-    executor.start_polling(dp, skip_updates=True)
+if __name__ == '__main__':
+    executor.start_polling(dp, on_startup=on_startup)
