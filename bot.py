@@ -165,7 +165,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
     p = daily_discount
-    discounted_price = int(p['price'] * 0.75)
+    discounted_price = int(p['price'] * 0.85)
     caption = (
         f"*Знижка дня!*\n\n"
         f"Сьогодні у нас акція на:\n"
@@ -296,8 +296,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
 
     i = 1
     for name, details in counted.items():
-        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн
-"
+        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн"
         keyboard.add(
             InlineKeyboardButton(f"➖", callback_data=f"decrease_{name}"),
             InlineKeyboardButton(f"➕", callback_data=f"increase_{name}")
