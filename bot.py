@@ -106,9 +106,14 @@ async def back_to_main(callback: types.CallbackQuery):
     await callback.answer()
   # Стартове повідомлення та головне меню
 main_menu_buttons = [
-    [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"),[InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")], 
-    [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],[InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
-    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer"),(InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")],
+    main_menu_buttons = [
+    [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
+    [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
+    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
+]
+main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
+
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
@@ -494,7 +499,9 @@ async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_address_or_post(message: types.Message, state: FSMContext):
-    if not message.text.isdigit():
+    data = await state.get_data()
+    delivery_type = data['delivery_type']
+    if delivery_type == "delivery_post" and not message.text.isdigit():
         await message.answer("❗ Введіть лише номер відділення цифрами.")
         return
     data = await state.get_data()
