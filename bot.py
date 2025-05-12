@@ -483,7 +483,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
     else:
-        await callback.message.answer("🌉Введіть *Номер відділення*:")
+        await callback.message.answer("🏡 Введіть *повну адресу доставки* кур'єром:")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -523,18 +523,16 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     final = total - discount
 
     order_summary = (
-        f"📦 *Перевірте замовлення перед підтвердженням:*"
-        f"👤 *ПІБ:* {data['name']}"
-        f"📞 *Телефон:* {data['phone']}"
-        f"🏙 *Місто:* {data['city']}"
-        f"📍 *Адреса / Відділення:* {data['address_or_post']}"
-        f"🛍 *Товари в кошику:*{text_items}"
-        f"💵 *Сума без знижок:* {total} грн"
-        f"🎁 *Знижка:* {discount} грн"
-        f"✅ *До сплати:* {final} грн"
-    )
-  
-
+    f"📦 *Перевірте замовлення перед підтвердженням:*\n"
+    f"👤 *ПІБ:* {data['name']}\n"
+    f"📞 *Телефон:* {data['phone']}\n"
+    f"🏙 *Місто:* {data['city']}\n"
+    f"📍 *Адреса / Відділення:* {data['address_or_post']}\n"
+    f"🛍 *Товари в кошику:*\n{text_items}\n"
+    f"💵 *Сума без знижок:* {total} грн\n"
+    f"🎁 *Знижка:* {discount} грн\n"
+    f"✅ *До сплати:* {final} грн"
+)
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
@@ -554,8 +552,8 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         name = data['name']
         phone = data['phone']
         city = data['city']
-        delivery_type = ''  # Вилучено тип доставки для збереження читабельності
-        address = data['address_or_post']
+        delivery_type = data.get('post_service', 'Адреса') if data['delivery_type'] == 'delivery_post' else 'Адреса'
+        address = message.text if data['delivery_type'] == 'delivery_address' else data.get('address_or_post', '-')
         user_id = callback.from_user.id
 
         cart_items = user_carts.get(user_id, [])
@@ -566,13 +564,11 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
         final_price = total_sum - discount
 
         sheet.append_row([
-            date,
-            time,
-            name,
-            phone,
-            city,
-            delivery_type,
-            address,
+        date,
+        time,
+        name,
+        phone,
+        city,
             order_description,
             final_price,
             discount,
