@@ -281,8 +281,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
 
     i = 1
     for name, details in counted.items():
-        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн
-"
+        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн"
         keyboard.add(
             InlineKeyboardButton(f"➖", callback_data=f"decrease_{name}"),
             InlineKeyboardButton(f"➕", callback_data=f"increase_{name}")
