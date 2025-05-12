@@ -355,11 +355,14 @@ async def remove_from_cart(message: types.Message):
 @dp.message_handler(state=OrderStates.name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer("Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_name")]]))
+    await message.answer("Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="back")]]))
     await OrderStates.phone.set()
 
 @dp.message_handler(state=OrderStates.phone)
 async def get_phone(message: types.Message, state: FSMContext):
+    if not message.text.isdigit() or len(message.text) != 10:
+        await message.answer("❗ Номер телефону має містити 10 цифр без +38. Наприклад: 0931234567")
+        return
     await state.update_data(phone=message.text)
     await message.answer("Введіть ваше *місто*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_phone")]]))
     await OrderStates.city.set()
@@ -485,35 +488,22 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     text_items = ""
     total = 0
     for i, item in enumerate(cart, 1):
-        text_items += f"{i}. {item['name']} — {item['price']} грн
-"
+        text_items += f"{i}. {item['name']} — {item['price']} грн"
         total += item['price']
 
     discount = user_discounts.get(user_id, 0)
     final = total - discount
 
     order_summary = (
-        f"📦 *Перевірте замовлення перед підтвердженням:*
-
-"
-        f"👤 *Ім’я:* {data['name']}
-"
-        f"📞 *Телефон:* {data['phone']}
-"
-        f"🏙 *Місто:* {data['city']}
-"
-        f"🚚 *Тип доставки:* {'Відділення' if delivery_type == 'delivery_post' else 'Адресна'}
-"
-        f"📍 *Адреса / Відділення:* {data['address_or_post']}
-
-"
-        f"🛍 *Товари в кошику:*
-{text_items}
-"
-        f"💵 *Сума без знижок:* {total} грн
-"
-        f"🎁 *Знижка:* {discount} грн
-"
+        f"📦 *Перевірте замовлення перед підтвердженням:*"
+        f"👤 *Ім’я:* {data['name']}"
+        f"📞 *Телефон:* {data['phone']}"
+        f"🏙 *Місто:* {data['city']}"
+        f"🚚 *Тип доставки:* {'Відділення' if delivery_type == 'delivery_post' else 'Адресна'}"
+        f"📍 *Адреса / Відділення:* {data['address_or_post']}"
+        f"🛍 *Товари в кошику:*{text_items}"
+        f"💵 *Сума без знижок:* {total} грн"
+        f"🎁 *Знижка:* {discount} грн"
         f"✅ *До сплати:* {final} грн"
     )
 
