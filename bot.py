@@ -106,7 +106,6 @@ async def back_to_main(callback: types.CallbackQuery):
     await callback.answer()
   # Стартове повідомлення та головне меню
 main_menu_buttons = [
-    main_menu_buttons = [
     [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
     [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
     [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
@@ -114,7 +113,6 @@ main_menu_buttons = [
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
-main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("👩🏼‍🦰👱🏼Унісекс", callback_data="cat_unisex")],
