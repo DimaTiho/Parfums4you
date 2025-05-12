@@ -189,7 +189,7 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     if not perfume:
         await callback.answer("Помилка: товар не знайдено.")
         return
-    discounted_price = int(perfume["price"] * 0.75)
+    discounted_price = int(perfume["price"] * 0.85)
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 # === Відгуки з промокодом ===
@@ -219,32 +219,40 @@ async def receive_review(message: types.Message, state: FSMContext):
 # Блок: Акції та бонуси
 @dp.message_handler(lambda message: message.text == "Акції та бонуси")
 async def promotions_handler(message: types.Message):
+    await promotions_callback(message)
+
+@dp.callback_query_handler(lambda c: c.data == "promotions")
+async def promotions_callback(callback_or_message):
     promo_text = (
-        "🎉 *Наявні акції:*\n\n"
+        "🎉 *Наявні акції:*"
         "1️⃣ *3-й парфум зі знижкою -50%*"
-        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n\n"
-        "2️⃣ *Безкоштовна доставка від 500 грн*\n"
-        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!\n\n"
-        "3️⃣ *Знижка для подруг — 10% кожній!*\n"
-        "Запросіть подругу — обидві отримаєте знижку 10%.\n\n"
-        "4️⃣ *Набір зі знижкою -15%*\n"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%"
+        "2️⃣ *Безкоштовна доставка від 500 грн*"
+        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!"
+        "3️⃣ *Знижка для подруг — 10% кожній!*"
+        "Запросіть подругу — обидві отримаєте знижку після замовлення."
+        "4️⃣ *Набір зі знижкою -15%*"
         "При покупці 3+ парфумів — знижка 15% на кожен."
     )
-    await message.answer(promo_text, reply_markup=main_menu)
-      
+
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"), InlineKeyboardButton("🔙 Повернення", callback_data="main_menu"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("📄 Умови з подругою", callback_data="promo_cond_3"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("📄 Умови набору зі знижкою", callback_data="promo_cond_4"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog")
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
     )
 
-    await message.answer(promo_text, reply_markup=keyboard)
+    if isinstance(callback_or_message, types.CallbackQuery):
+        await callback_or_message.message.answer(promo_text, reply_markup=keyboard)
+        await callback_or_message.answer()
+    else:
+        await callback_or_message.answer(promo_text, reply_markup=keyboard)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
 async def promo_conditions(call: types.CallbackQuery):
@@ -269,9 +277,16 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     if user_id not in user_carts:
         user_carts[user_id] = []
     user_carts[user_id].append({"name": perfume_name, "price": 200})
+
     buttons = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart")],
-        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")]
+        [
+            InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart"),
+            InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")
+        ],
+        [
+            InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
+        ]
     ])
     await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
     await callback.answer()
