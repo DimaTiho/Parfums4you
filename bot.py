@@ -267,8 +267,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
         await callback.message.answer("🛒 Ваш кошик порожній.")
         return
 
-    text = "*Ваш кошик:*
-"
+    text = "*Ваш кошик:*"
     total = 0
     keyboard = InlineKeyboardMarkup(row_width=2)
     counted = {}
