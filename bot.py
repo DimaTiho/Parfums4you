@@ -488,12 +488,13 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
         await OrderStates.address_or_post.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.delivery_type)
+@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"])
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post_service=callback.data)
     await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
     await OrderStates.address_or_post.set()
     await callback.answer()
+
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_address_or_post(message: types.Message, state: FSMContext):
