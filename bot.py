@@ -362,56 +362,7 @@ async def get_phone(message: types.Message, state: FSMContext):
         await message.answer("❗ Номер телефону має містити 10 цифр без +38. Наприклад: 0931234567")
         return
     await state.update_data(phone=message.text)
-    await message.answer("Введіть ваше *місто*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_phone")]]))
-    await OrderStates.city.set()
-
-@dp.message_handler(state=OrderStates.city)
-async def get_city(message: types.Message, state: FSMContext):
-    await state.update_data(city=message.text)
-    buttons = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("📦 На відділення", callback_data="delivery_branch")],
-        [InlineKeyboardButton("🚚 Адресна доставка", callback_data="delivery_address")]])
-    await message.answer("Оберіть тип доставки:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons.inline_keyboard + [[InlineKeyboardButton("🔙 Повернутись до попереднього кроку", callback_data="back_city")]]))
-    await OrderStates.delivery_type.set()
-
-@dp.callback_query_handler(state=OrderStates.delivery_type)
-async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
-    if callback.data == "delivery_branch":
-        await state.update_data(delivery_type="Відділення")
-        await bot.send_message(callback.from_user.id, "Введіть номер відділення:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись", callback_data="back_delivery_type")]]))
-    else:
-        await state.update_data(delivery_type="Адресна доставка")
-        await bot.send_message(callback.from_user.id, "Введіть адресу доставки:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернутись", callback_data="back_delivery_type")]]))
-    await OrderStates.address_or_post.set()
-    await callback.answer()
-
-
-# === Після підтвердження — перевірка ТТН ===
-@dp.message_handler(commands=["track_ttns"])
-async def track_pending_orders(message: types.Message):
-    all_data = sheet.get_all_values()
-    for i, row in enumerate(all_data[1:], start=2):
-        if len(row) >= 13:
-            chat_id = row[10].strip()
-            ttn = row[11].strip()
-            status = row[12].strip() if len(row) > 12 else ""
-            if ttn and not status:
-                try:
-                    await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                    sheet.update_cell(i, 13, "✅ надіслано")
-                    await asyncio.sleep(1)
-                except Exception as e:
-                    logging.error(f"Помилка при надсиланні ТТН: {e}")
-
-
-async def start_order(message: types.Message):
-    await message.answer("Введіть ваше *ім'я та прізвище*:")
-    await OrderStates.name.set()
-
-@dp.message_handler(state=OrderStates.name)
-async def get_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer("Введіть ваш *номер телефону* у форматі +380...")
+    await message.answer("Введіть *місто доставки*:")
     await OrderStates.next()
 
 @dp.message_handler(state=OrderStates.phone)
@@ -430,6 +381,24 @@ async def get_city(message: types.Message, state: FSMContext):
     )
     await message.answer("Оберіть *тип доставки*:", reply_markup=keyboard)
     await OrderStates.next()
+
+@dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.phone)
+async def back_to_name(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("✍️ Введіть ваше *ім'я* для оформлення замовлення:")
+    await OrderStates.name.set()
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.city)
+async def back_to_phone(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("📞 Введіть ваш номер телефону:")
+    await OrderStates.phone.set()
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.delivery_type)
+async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("🏙 Введіть ваше місто:")
+    await OrderStates.city.set()
+    await callback.answer()
 
 @dp.callback_query_handler(state=OrderStates.delivery_type)
 async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
@@ -489,7 +458,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"🛍 *Товари в кошику:*{text_items}"
         f"💵 *Сума без знижок:* {total} грн"
         f"🎁 *Знижка:* {discount} грн"
-        f"✅ *До сплати:* {final} грн"
+        f"✅ *До сплати:* {final} грн")
     )
 
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -582,6 +551,23 @@ async def auto_start_from_any_message(message: types.Message):
         ),
         reply_markup=main_menu
     )
+
+@dp.message_handler(commands=["track_ttns"])
+async def track_pending_orders(message: types.Message):
+    all_data = sheet.get_all_values()
+    for i, row in enumerate(all_data[1:], start=2):  # пропускаємо заголовок
+        if len(row) >= 12:
+            chat_id = row[10].strip()
+            ttn = row[11].strip()
+            status = row[12].strip() if len(row) > 12 else ""
+            if ttn and not status:
+                try:
+                    await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!
+Номер накладної: *{ttn}*")
+                    sheet.update_cell(i, 13, "✅ надіслано")
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    logging.error(f"Помилка при надсиланні ТТН: {e}")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
