@@ -125,7 +125,7 @@ async def handle_category(callback: types.CallbackQuery):
     perfumes = perfume_catalog.get(callback.data, [])
     for p in perfumes:
         buttons = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton("➕ Додати до кошика", callback_data=f"add_{p['name']}")],
+            [InlineKeyboardButton("➕ Додати до кошика", callback_data=InlineKeyboardButton("➕ Додати до кошика", callback_data=f"add_{p['name']}")]), InlineKeyboardButton("🔙 Повернення", callback_data="catalog")],
             [InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"), InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
         ])
         await bot.send_photo(callback.from_user.id, p['photo'], caption=f"*{p['name']}*\n💸 {p['price']} грн", reply_markup=buttons)
@@ -217,7 +217,7 @@ async def promotions_handler(message: types.Message):
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"), InlineKeyboardButton("🔙 Повернення", callback_data="main_menu"),
         InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("📄 Умови з подругою", callback_data="promo_cond_3"),
@@ -272,7 +272,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
         total += item['price']
     text += f"💵 Загальна сума: {total} грн"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
+        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"), InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")],
         [InlineKeyboardButton("❌ Очистити кошик", callback_data="clear_cart")]
     ])
     await callback.message.answer(text, reply_markup=keyboard)
@@ -412,7 +412,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
     else:
-        await callback.message.answer("Введіть *повну адресу доставки*:")
+        await callback.message.answer("Введіть *Номер відділення*:")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -425,6 +425,9 @@ async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_address_or_post(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("❗ Введіть лише номер відділення цифрами.")
+        return
     data = await state.get_data()
     delivery_type = data['delivery_type']
     if delivery_type == "delivery_post":
