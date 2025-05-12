@@ -388,19 +388,7 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     await OrderStates.address_or_post.set()
     await callback.answer()
 
-@dp.message_handler(state=OrderStates.address_or_post)
-async def get_address(message: types.Message, state: FSMContext):
-    await state.update_data(address_or_post=message.text)
-    data = await state.get_data()
-    summary = f"*Перевірте ваші дані:*\n\n"
-    summary += f"👤 Ім’я: {data['name']}\n📱 Телефон: {data['phone']}\n🏙 Місто: {data['city']}\n"
-    summary += f"🚚 Доставка: {data['delivery_type']}\n📦 Деталі: {data['address_or_post']}\n"
-    buttons = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order")],
-        [InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")]
-    ])
-    await message.answer(summary, reply_markup=buttons)
-    await OrderStates.confirmation.set()
+
 # === Після підтвердження — перевірка ТТН ===
 @dp.message_handler(commands=["track_ttns"])
 async def track_pending_orders(message: types.Message):
