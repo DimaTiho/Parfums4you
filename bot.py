@@ -414,22 +414,7 @@ async def track_pending_orders(message: types.Message):
             except Exception as e:
                 logging.error(f"Помилка при надсиланні ТТН: {e}")
 
-@dp.callback_query_handler(lambda c: c.data == "confirm_order", state=OrderStates.confirmation)
-async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    user_id = callback.from_user.id
-    cart = user_carts.get(user_id, [])
-    total = len(cart) * 200
-    if total > 500:
-        delivery = 0
-    else:
-        delivery = 80
-    final_total = total + delivery
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([now, user_id, data['name'], data['phone'], data['city'], data['delivery_type'], data['address_or_post'], ", ".join(cart), final_total])
-    await bot.send_message(user_id, f"✅ Замовлення підтверджено! Загальна сума: {final_total} грн. Дякуємо за покупку!")
-    await state.finish()
-@dp.message_handler(commands=["order"])
+
 async def start_order(message: types.Message):
     await message.answer("Введіть ваше *ім'я та прізвище*:")
     await OrderStates.name.set()
