@@ -114,8 +114,8 @@ main_menu_buttons = [
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("👩Жіночі", callback_data="cat_women"), InlineKeyboardButton("Унісекс", callback_data="cat_unisex")],
-    [InlineKeyboardButton("🔝Топ продаж", callback_data="cat_top")],
+    [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("👩🏼‍🦰👱🏼Унісекс", callback_data="cat_unisex")],
+    [InlineKeyboardButton("‼️Топ продаж", callback_data="cat_top")],
     [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
 ])
 
@@ -228,6 +228,24 @@ async def promotions_handler(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def promotions_callback(callback_or_message):
     promo_text = (
+        "🎉 *Наявні акції:*
+"
+        "1️⃣ *3-й парфум зі знижкою -50%*
+"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%
+"
+        "2️⃣ *Безкоштовна доставка від 500 грн*
+"
+        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!
+"
+        "3️⃣ *Знижка для подруг — 10% кожній!*
+"
+        "Запросіть подругу — обидві отримаєте знижку після замовлення.
+"
+        "4️⃣ *Набір зі знижкою -15%*
+"
+        "При покупці 3+ парфумів — знижка 15% на кожен."
+    )
         "🎉 *Наявні акції:*"
         "1️⃣ *3-й парфум зі знижкою -50%*"
         "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%"
@@ -428,7 +446,7 @@ async def remove_from_cart(message: types.Message):
 @dp.message_handler(state=OrderStates.name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer("Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="back")]]))
+    await message.answer("📞Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="back")]]))
     await OrderStates.phone.set()
 
 @dp.message_handler(state=OrderStates.phone)
@@ -437,7 +455,7 @@ async def get_phone(message: types.Message, state: FSMContext):
         await message.answer("❗ Номер телефону має містити 10 цифр без +38. Наприклад: 0931234567")
         return
     await state.update_data(phone=message.text)
-    await message.answer("Введіть *місто доставки*:")
+    await message.answer("🏙Введіть *місто доставки*:")
     await OrderStates.next()
 
 
@@ -455,19 +473,19 @@ async def get_city(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.phone)
 async def back_to_name(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("✍️ Введіть ваше *ім'я* для оформлення замовлення:")
+    await callback.message.answer("✍️Введіть ваше *ПІБ* для оформлення замовлення:")
     await OrderStates.name.set()
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.city)
 async def back_to_phone(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("📞 Введіть ваш номер телефону:")
+    await callback.message.answer("📞Введіть ваш номер телефону:")
     await OrderStates.phone.set()
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.delivery_type)
 async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("🏙 Введіть ваше місто:")
+    await callback.message.answer("🏙Введіть ваше місто:")
     await OrderStates.city.set()
     await callback.answer()
 
@@ -478,12 +496,12 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
     if delivery_type == "delivery_post":
         keyboard = InlineKeyboardMarkup(row_width=2)
         keyboard.add(
-            InlineKeyboardButton("Нова Пошта", callback_data="nova_post"),
-            InlineKeyboardButton("Укрпошта", callback_data="ukr_post")
+            InlineKeyboardButton("🚚Нова Пошта", callback_data="nova_post"),
+            InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
     else:
-        await callback.message.answer("Введіть *Номер відділення*:")
+        await callback.message.answer("🌉Введіть *Номер відділення*:")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
@@ -524,7 +542,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
     order_summary = (
         f"📦 *Перевірте замовлення перед підтвердженням:*"
-        f"👤 *Ім’я:* {data['name']}"
+        f"👤 *ПІБ:* {data['name']}"
         f"📞 *Телефон:* {data['phone']}"
         f"🏙 *Місто:* {data['city']}"
         f"📍 *Адреса / Відділення:* {data['address_or_post']}"
