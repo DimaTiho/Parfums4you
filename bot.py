@@ -44,7 +44,6 @@ class OrderStates(StatesGroup):
     phone = State()
     city = State()
     delivery_type = State()
-    post_service = State()
     address_or_post = State()
     confirmation = State()
 
@@ -484,13 +483,12 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
             InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
-        await OrderStates.post_service.set()  # Переходимо у новий стан
     else:
         await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.post_service)
+@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.delivery_type)
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post_service=callback.data)
     await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
