@@ -446,13 +446,13 @@ async def get_phone(message: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderStates.city)
 async def get_city(message: types.Message, state: FSMContext):
     await state.update_data(city=message.text)
+    await state.set_state(OrderStates.delivery_type)
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("На відділення", callback_data="delivery_post"),
         InlineKeyboardButton("Кур'єром на адресу", callback_data="delivery_address")
     )
     await message.answer("Оберіть *тип доставки*:", reply_markup=keyboard)
-    await OrderStates.next()
 
 @dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.phone)
 async def back_to_name(callback: types.CallbackQuery, state: FSMContext):
