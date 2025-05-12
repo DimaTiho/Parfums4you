@@ -165,7 +165,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
     p = daily_discount
-    discounted_price = int(p['price'] * 0.75)
+    discounted_price = int(p['price'] * 0.85)
     caption = (
         f"*Знижка дня!*\n\n"
         f"Сьогодні у нас акція на:\n"
@@ -189,7 +189,7 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     if not perfume:
         await callback.answer("Помилка: товар не знайдено.")
         return
-    discounted_price = int(perfume["price"] * 0.85)
+    discounted_price = int(perfume["price"] * 0.75)
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 # === Відгуки з промокодом ===
@@ -224,14 +224,26 @@ async def promotions_handler(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def promotions_callback(callback_or_message):
     promo_text = (
-        "🎉 *Наявні акції:*"
-        "1️⃣ *3-й парфум зі знижкою -50%*"
-        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%"
-        "2️⃣ *Безкоштовна доставка від 500 грн*"
-        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!"
-        "3️⃣ *Знижка для подруг — 10% кожній!*"
-        "Запросіть подругу — обидві отримаєте знижку після замовлення."
-        "4️⃣ *Набір зі знижкою -15%*"
+        "🎉 *Наявні акції:*
+
+"
+        "1️⃣ *3-й парфум зі знижкою -50%*
+"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%
+
+"
+        "2️⃣ *Безкоштовна доставка від 500 грн*
+"
+        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!
+
+"
+        "3️⃣ *Знижка для подруг — 10% кожній!*
+"
+        "Запросіть подругу — обидві отримаєте знижку після замовлення.
+
+"
+        "4️⃣ *Набір зі знижкою -15%*
+"
         "При покупці 3+ парфумів — знижка 15% на кожен."
     )
 
@@ -626,17 +638,19 @@ async def auto_start_from_any_message(message: types.Message):
 async def track_pending_orders(message: types.Message):
     all_data = sheet.get_all_values()
     for i, row in enumerate(all_data[1:], start=2):  # пропускаємо заголовок
-        if len(row) >= 12:
-            chat_id = row[10].strip()
-            ttn = row[11].strip()
+        try:
+            chat_id = row[10].strip() if len(row) > 10 else ""
+            ttn = row[11].strip() if len(row) > 11 else ""
             status = row[12].strip() if len(row) > 12 else ""
-            if ttn and not status:
-                try:
-                    await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                    sheet.update_cell(i, 13, "✅ надіслано")
-                    await asyncio.sleep(1)
-                except Exception as e:
-                    logging.error(f"Помилка при надсиланні ТТН: {e}")
+
+            if chat_id.isdigit() and ttn and not status:
+                await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!
+Номер накладної: *{ttn}*")
+                sheet.update_cell(i, 13, "✅ надіслано")
+                await asyncio.sleep(1)
+
+        except Exception as e:
+            logging.error(f"❌ Помилка в рядку {i}: {e}")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
