@@ -184,11 +184,14 @@ async def show_daily_discount(callback: types.CallbackQuery):
 async def add_discount_to_cart(callback: types.CallbackQuery):
     name = callback.data.replace("discount_", "")
     user_id = callback.from_user.id
-    if user_id not in user_carts:
-        user_carts[user_id] = []
-    user_carts[user_id].append(name + " (зі знижкою)")
-    user_discounts[user_id] = name
-    await callback.answer("Додано до кошика зі знижкою!")
+    all_perfumes = sum(perfume_catalog.values(), [])
+    perfume = next((p for p in all_perfumes if p["name"] == name), None)
+    if not perfume:
+        await callback.answer("Помилка: товар не знайдено.")
+        return
+    discounted_price = int(perfume["price"] * 0.75)
+    user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
+    await callback.answer("✅ Додано до кошика зі знижкою!")
 # === Відгуки з промокодом ===
 used_promo_users = set()
 PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
@@ -302,7 +305,8 @@ async def show_cart_callback(callback: types.CallbackQuery):
 
     discount = user_discounts.get(user_id, 0)
     final_price = total - discount
-    text += f"💵 Сума без знижок: {total} грн"
+    text += f"
+💵 Сума без знижок: {total} грн"
     if discount:
         text += f"🎁 Знижка: {discount} грн"
         text += f"✅ До сплати: {final_price} грн"
@@ -370,23 +374,13 @@ async def add_to_cart(message: types.Message):
 # Переглянути кошик
 @dp.message_handler(commands=["кошик", "cart"])
 async def view_cart(message: types.Message):
-    user_id = message.from_user.id
-    cart = user_carts.get(user_id, [])
-    if not cart:
-        await message.answer("🛒 Ваш кошик порожній.")
-        return
-    text = "*Ваш кошик:*\n"
-    total = 0
-    for i, item in enumerate(cart, 1):
-        text += f"{i}. {item['name']} - {item['price']} грн\n"
-        total += item['price']
-    discount = user_discounts.get(user_id, 0)
-    final_price = total - discount
-    text += f"\n💵 Загальна сума: {total} грн"
-    if discount:
-        text += f"\n🎁 Знижка: {discount} грн"
-        text += f"\n✅ До сплати: {final_price} грн"
-    await message.answer(text)
+    # Переадресація на функцію show_cart_callback з фейковим callback
+    class DummyCallback:
+        def __init__(self, user_id, message):
+            self.from_user = types.User(id=user_id, is_bot=False, first_name="User")
+            self.message = message
+            self.data = "show_cart"
+    await show_cart_callback(DummyCallback(message.from_user.id, message))
 
 # Очистити кошик
 @dp.message_handler(commands=["очистити", "clear"])
