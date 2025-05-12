@@ -165,7 +165,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
     p = daily_discount
-    discounted_price = int(p['price'] * 0.85)
+    discounted_price = int(p['price'] * 0.75)
     caption = (
         f"*Знижка дня!*\n\n"
         f"Сьогодні у нас акція на:\n"
@@ -278,30 +278,26 @@ async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
+        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
         return
 
     cart = apply_third_item_discount(cart)
-    text = "*Ваш кошик:*"
-    total = 0
-    keyboard = InlineKeyboardMarkup(row_width=2)
     counted = {}
+    total = 0
     for item in cart:
-        key = item['name']
-        if key in counted:
-            counted[key]['count'] += 1
-            counted[key]['total'] += item['price']
+        name = item['name']
+        if name not in counted:
+            counted[name] = {'count': 1, 'price': item['price']}
         else:
-            counted[key] = {'price': item['price'], 'count': 1, 'total': item['price']}
+            counted[name]['count'] += 1
+            counted[name]['price'] += item['price']
+        total += item['price']
 
+    text = "*Ваш кошик:*"
     i = 1
-    for name, details in counted.items():
-        text += f"{i}. {name} — {details['count']} шт. x {details['price']} грн = {details['total']} грн"
-        keyboard.add(
-            InlineKeyboardButton(f"➖", callback_data=f"decrease_{name}"),
-            InlineKeyboardButton(f"➕", callback_data=f"increase_{name}")
-        )
-        total += details['total']
+    for name, data in counted.items():
+        text += f"{i}. {name} — {data['count']} шт. x {round(data['price'] / data['count'])} грн = {data['price']} грн"
         i += 1
 
     discount = user_discounts.get(user_id, 0)
@@ -311,10 +307,11 @@ async def show_cart_callback(callback: types.CallbackQuery):
         text += f"🎁 Знижка: {discount} грн"
         text += f"✅ До сплати: {final_price} грн"
 
+    keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
-        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu"),
-        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
+        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart"),
+        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
     )
     await callback.message.answer(text, reply_markup=keyboard)
     await callback.answer()
