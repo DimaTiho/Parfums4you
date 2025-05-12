@@ -150,7 +150,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
     p = daily_discount
-    discounted_price = int(p['price'] * 0.15)
+    discounted_price = int(p['price'] * 0.75)
     caption = (
         f"*Знижка дня!*\n\n"
         f"Сьогодні у нас акція на:\n"
@@ -459,7 +459,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"💵 *Сума без знижок:* {total} грн"
         f"🎁 *Знижка:* {discount} грн"
         f"✅ *До сплати:* {final} грн")
-    )
+  
 
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
