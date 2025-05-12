@@ -513,7 +513,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     await state.update_data(address_or_post=address_or_post)
 
     # Далі: формування order_summary, підтвердження, запис у таблицю
-)
+
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
