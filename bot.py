@@ -44,6 +44,7 @@ class OrderStates(StatesGroup):
     phone = State()
     city = State()
     delivery_type = State()
+    post_service = State()
     address_or_post = State()
     confirmation = State()
 
@@ -483,14 +484,15 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
             InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
         )
         await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
+        await OrderStates.post_service.set()  # Переходимо у новий стан
     else:
         await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
         await OrderStates.address_or_post.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.post_service)
+@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.delivery_type)
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
-    await state.update_data(post_service=callback.data)
+    await state.update_data(delivery_type=callback.data)
     await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
     await OrderStates.address_or_post.set()
     await callback.answer()
@@ -499,17 +501,20 @@ async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
 async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     delivery_type = data['delivery_type']
+    
+    if delivery_type == "delivery_post" and not message.text.isdigit():
+        await message.answer("❗ Введіть лише номер відділення цифрами.")
+        return
 
     if delivery_type == "delivery_post":
-        if not message.text.isdigit():
-            await message.answer("❗ Введіть лише номер відділення цифрами.")
-            return
         post_service = data.get('post_service', '-')
         address_or_post = f"{post_service.upper()} {message.text}"
     else:
-        address_or_post = message.text  # допускає букви, цифри, пробіли
+        address_or_post = message.text
 
     await state.update_data(address_or_post=address_or_post)
+
+    # Далі: формування order_summary, підтвердження, запис у таблицю
 
     data = await state.get_data()
     user_id = message.from_user.id
@@ -519,23 +524,23 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     text_items = ""
     total = 0
     for i, item in enumerate(cart, 1):
-        text_items += f"{i}. {item['name']} — {item['price']} грн\n"
+        text_items += f"{i}. {item['name']} — {item['price']} грн"
         total += item['price']
 
     discount = user_discounts.get(user_id, 0)
     final = total - discount
 
     order_summary = (
-        f"📦 *Перевірте замовлення перед підтвердженням:*\n"
-        f"👤 *ПІБ:* {data['name']}\n"
-        f"📞 *Телефон:* {data['phone']}\n"
-        f"🏙 *Місто:* {data['city']}\n"
-        f"📍 *Адреса / Відділення:* {data['address_or_post']}\n"
-        f"🛍 *Товари в кошику:*\n{text_items}"
-        f"💵 *Сума без знижок:* {total} грн\n"
-        f"🎁 *Знижка:* {discount} грн\n"
-        f"✅ *До сплати:* {final} грн"
-    )
+    f"📦 *Перевірте замовлення перед підтвердженням:*\n"
+    f"👤 *ПІБ:* {data['name']}\n"
+    f"📞 *Телефон:* {data['phone']}\n"
+    f"🏙 *Місто:* {data['city']}\n"
+    f"📍 *Адреса / Відділення:* {data['address_or_post']}\n"
+    f"🛍 *Товари в кошику:*\n{text_items}\n"
+    f"💵 *Сума без знижок:* {total} грн\n"
+    f"🎁 *Знижка:* {discount} грн\n"
+    f"✅ *До сплати:* {final} грн"
+)
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
