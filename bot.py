@@ -473,28 +473,30 @@ async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
     await OrderStates.city.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["delivery_post", "delivery_address"], state=OrderStates.delivery_type)
-async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
-    delivery_type = callback.data
-    await state.update_data(delivery_type=delivery_type)
-    if delivery_type == "delivery_post":
-        keyboard = InlineKeyboardMarkup(row_width=2)
-        keyboard.add(
-            InlineKeyboardButton("🚚Нова Пошта", callback_data="nova_post"),
-            InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
-        )
-        await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
-        await OrderStates.post_service.set()  # Переходимо у новий стан
-    else:
-        await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
-        await OrderStates.address_or_post.set()
-    await callback.answer()
+@dp.callback_query_handler(lambda c: c.data in ["delivery_post", "delivery_address", "nova_post", "ukr_post"], state="*")
+async def handle_delivery_choice(callback: types.CallbackQuery, state: FSMContext):
+    data = callback.data
+    current_state = await state.get_state()
 
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.post_service)
-async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
-    await state.update_data(post_service=callback.data)
-    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
-    await OrderStates.address_or_post.set()
+    if data in ["delivery_post", "delivery_address"]:
+        await state.update_data(delivery_type=data)
+        if data == "delivery_post":
+            keyboard = InlineKeyboardMarkup(row_width=2)
+            keyboard.add(
+                InlineKeyboardButton("🚚Нова Пошта", callback_data="nova_post"),
+                InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
+            )
+            await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
+            await OrderStates.post_service.set()
+        else:
+            await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
+            await OrderStates.address_or_post.set()
+
+    elif data in ["nova_post", "ukr_post"] and current_state == OrderStates.post_service.state:
+        await state.update_data(post_service=data)
+        await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
+        await OrderStates.address_or_post.set()
+
     await callback.answer()
 
 
