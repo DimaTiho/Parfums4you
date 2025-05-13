@@ -473,58 +473,37 @@ async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
     await OrderStates.city.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data in ["delivery_post", "delivery_address"], state=OrderStates.delivery_type)
-async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
-    delivery_type = callback.data
-    await state.update_data(delivery_type=delivery_type)
-    if delivery_type == "delivery_post":
-        keyboard = InlineKeyboardMarkup(row_width=2)
-        keyboard.add(
-            InlineKeyboardButton("🚚Нова Пошта", callback_data="nova_post"),
-            InlineKeyboardButton("🚛Укрпошта", callback_data="ukr_post")
-        )
-        await callback.message.answer("Оберіть службу доставки:", reply_markup=keyboard)
-        await OrderStates.post_service.set()
-    else:
-        await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
-        await OrderStates.address_or_post.set()
-    await callback.answer()
-
-
-@dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.post_service)
-async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
-    await state.update_data(post_service=callback.data)
-    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
-    await OrderStates.address_or_post.set()
-    await callback.answer()
-
-
 @dp.message_handler(state=OrderStates.address_or_post)
 async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    delivery_type = data['delivery_type']
+    delivery_type = data.get('delivery_type')
+    
+    if not delivery_type:
+        await message.answer("⚠️ Сталася помилка. Тип доставки не знайдено.")
+        return
 
     if delivery_type == "delivery_post" and not message.text.isdigit():
         await message.answer("❗ Введіть лише номер відділення цифрами.")
         return
 
+    POST_SERVICES = {
+        "nova_post": "Нова Пошта",
+        "ukr_post": "Укрпошта"
+    }
+
     if delivery_type == "delivery_post":
-        post_service = data.get('post_service', '-')
-        address_or_post = f"{post_service.upper()} {message.text}"
+        post_service_key = data.get('post_service', '')
+        post_service = POST_SERVICES.get(post_service_key, '-')
+        address_or_post = f"{post_service} {message.text}"
     else:
         address_or_post = message.text
 
     await state.update_data(address_or_post=address_or_post)
 
-    # Далі: формування order_summary, підтвердження, запис у таблицю
-
+    # Формування підтвердження замовлення
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
-    if not cart:
-        await message.answer("🛒 Ваш кошик порожній. Будь ласка, додайте товари перед оформленням замовлення.")
-        return
-
     cart = apply_third_item_discount(cart)
 
     text_items = ""
@@ -538,23 +517,24 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
     order_summary = (
         f"📦 *Перевірте замовлення перед підтвердженням:*\n"
-        f"👤 *ПІБ:* {data['name']}\n"
-        f"📞 *Телефон:* {data['phone']}\n"
-        f"🏙 *Місто:* {data['city']}\n"
-        f"📍 *Адреса / Відділення:* {data['address_or_post']}\n"
+        f"👤 *ПІБ:* {data.get('name')}\n"
+        f"📞 *Телефон:* {data.get('phone')}\n"
+        f"🏙 *Місто:* {data.get('city')}\n"
+        f"📍 *Адреса / Відділення:* {data.get('address_or_post')}\n"
         f"🛍 *Товари в кошику:*\n{text_items}"
         f"💵 *Сума без знижок:* {total} грн\n"
         f"🎁 *Знижка:* {discount} грн\n"
         f"✅ *До сплати:* {final} грн"
     )
+
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
         InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
     )
+
     await message.answer(order_summary, reply_markup=keyboard)
     await OrderStates.confirmation.set()
-
 
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
