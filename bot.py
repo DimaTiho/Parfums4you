@@ -509,9 +509,9 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         return
 
     if delivery_type == "delivery_post":
-    post_service = data.get('post_service', '-')
-    post_service_full = "Нова Пошта" if post_service == "nova_post" else "Укрпошта"
-    address_or_post = f"{post_service_full} №{message.text}"
+        post_service = data.get('post_service', '-')
+        post_service_full = "Нова Пошта" if post_service == "nova_post" else "Укрпошта"
+        address_or_post = f"{post_service_full} №{message.text}"
     else:
         address_or_post = message.text
 
