@@ -492,11 +492,16 @@ async def handle_delivery_choice(callback: types.CallbackQuery, state: FSMContex
             await callback.message.answer("🏡 Внесіть *повну адресу доставки* (вулиця, номер будинку, квартира):")
             await OrderStates.address_or_post.set()
 
-    elif data in ["nova_post", "ukr_post"] and current_state == OrderStates.post_service.state:
-        await state.update_data(post_service=data)
-        await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
-        await OrderStates.address_or_post.set()
+    elif data in ["nova_post", "ukr_post"]:
+    # Перевірка, що delivery_type справді 'delivery_post'
+    delivery_data = await state.get_data()
+    if delivery_data.get("delivery_type") != "delivery_post":
+        await callback.answer("⚠️ Спочатку оберіть доставку на відділення.")
+        return
 
+    await state.update_data(post_service=data)
+    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
+    await OrderStates.address_or_post.set()
     await callback.answer()
 
 
