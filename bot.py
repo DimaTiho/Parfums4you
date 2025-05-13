@@ -9,6 +9,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import random
+from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
@@ -502,7 +503,7 @@ async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
 async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     delivery_type = data['delivery_type']
-    
+
     if delivery_type == "delivery_post" and not message.text.isdigit():
         await message.answer("❗ Введіть лише номер відділення цифрами.")
         return
@@ -515,8 +516,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
     await state.update_data(address_or_post=address_or_post)
 
-    # Далі: формування order_summary, підтвердження, запис у таблицю
-
+    # Формування та відображення замовлення
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
@@ -525,23 +525,23 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     text_items = ""
     total = 0
     for i, item in enumerate(cart, 1):
-        text_items += f"{i}. {item['name']} — {item['price']} грн"
+        text_items += f"{i}. {escape_md(item['name'])} — {item['price']} грн\n"
         total += item['price']
 
     discount = user_discounts.get(user_id, 0)
     final = total - discount
 
     order_summary = (
-    f"📦 *Перевірте замовлення перед підтвердженням:*\n"
-    f"👤 *ПІБ:* {data['name']}\n"
-    f"📞 *Телефон:* {data['phone']}\n"
-    f"🏙 *Місто:* {data['city']}\n"
-    f"📍 *Адреса / Відділення:* {data['address_or_post']}\n"
-    f"🛍 *Товари в кошику:*\n{text_items}\n"
-    f"💵 *Сума без знижок:* {total} грн\n"
-    f"🎁 *Знижка:* {discount} грн\n"
-    f"✅ *До сплати:* {final} грн"
-)
+        f"📦 *Перевірте замовлення перед підтвердженням:*\n"
+        f"👤 *ПІБ:* {escape_md(data['name'])}\n"
+        f"📞 *Телефон:* {escape_md(data['phone'])}\n"
+        f"🏙 *Місто:* {escape_md(data['city'])}\n"
+        f"📍 *Адреса / Відділення:* {escape_md(data['address_or_post'])}\n"
+        f"🛍 *Товари в кошику:*\n{text_items}"
+        f"💵 *Сума без знижок:* {total} грн\n"
+        f"🎁 *Знижка:* {discount} грн\n"
+        f"✅ *До сплати:* {final} грн"
+    )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
@@ -549,6 +549,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     )
     await message.answer(order_summary, reply_markup=keyboard)
     await OrderStates.confirmation.set()
+
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
 async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
