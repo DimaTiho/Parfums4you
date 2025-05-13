@@ -521,6 +521,10 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
+    if not cart:
+        await message.answer("🛒 Ваш кошик порожній. Будь ласка, додайте товари перед оформленням замовлення.")
+        return
+
     cart = apply_third_item_discount(cart)
 
     text_items = ""
@@ -543,7 +547,6 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"🎁 *Знижка:* {discount} грн\n"
         f"✅ *До сплати:* {final} грн"
     )
-
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
@@ -551,6 +554,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     )
     await message.answer(order_summary, reply_markup=keyboard)
     await OrderStates.confirmation.set()
+
 
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
