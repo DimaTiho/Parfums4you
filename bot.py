@@ -162,8 +162,8 @@ def generate_daily_discount():
     daily_discount = random.choice(all_perfumes)
     last_discount_update = datetime.now().date()
 
-@dp.callback_query_handler(lambda c: c.data == "daily_discount")
-async def show_daily_discount(callback: types.CallbackQuery):
+@dp.message_handler(lambda message: message.text == "Знижка дня")
+async def daily_discount_text_handler(message: types.Message):
     global daily_discount, last_discount_update
     if daily_discount == {} or last_discount_update != datetime.now().date():
         generate_daily_discount()
@@ -180,7 +180,7 @@ async def show_daily_discount(callback: types.CallbackQuery):
         [InlineKeyboardButton("➕ Додати зі знижкою", callback_data=f"discount_{p['name']}")],
         [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
     ])
-    await bot.send_photo(callback.from_user.id, p['photo'], caption=caption, reply_markup=buttons)
+    await message.answer_photo(photo=p['photo'], caption=caption, reply_markup=buttons)
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("discount_"))
