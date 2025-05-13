@@ -181,8 +181,7 @@ async def daily_discount_text_handler(message: types.Message):
         [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
     ])
     await message.answer_photo(photo=p['photo'], caption=caption, reply_markup=buttons)
-    await callback.answer()
-
+    
 @dp.callback_query_handler(lambda c: c.data.startswith("discount_"))
 async def add_discount_to_cart(callback: types.CallbackQuery):
     name = callback.data.replace("discount_", "")
