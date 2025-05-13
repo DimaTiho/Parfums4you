@@ -182,7 +182,7 @@ async def daily_discount_text_handler(message: types.Message):
     ])
     await message.answer_photo(photo=p['photo'], caption=caption, reply_markup=buttons)
 
-  @dp.callback_query_handler(lambda c: c.data == "daily_discount")
+@dp.callback_query_handler(lambda c: c.data == "daily_discount")
 async def daily_discount_callback_handler(callback: types.CallbackQuery):
     global daily_discount, last_discount_update
     if daily_discount == {} or last_discount_update != datetime.now().date():
