@@ -181,7 +181,27 @@ async def daily_discount_text_handler(message: types.Message):
         [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
     ])
     await message.answer_photo(photo=p['photo'], caption=caption, reply_markup=buttons)
-    
+
+  @dp.callback_query_handler(lambda c: c.data == "daily_discount")
+async def daily_discount_callback_handler(callback: types.CallbackQuery):
+    global daily_discount, last_discount_update
+    if daily_discount == {} or last_discount_update != datetime.now().date():
+        generate_daily_discount()
+    p = daily_discount
+    discounted_price = int(p['price'] * 0.85)
+    caption = (
+        f"*Знижка дня!*\n\n"
+        f"Сьогодні у нас акція на:\n"
+        f"*{p['name']}*\n"
+        f"💸 Замість {p['price']} грн — лише {discounted_price} грн!\n\n"
+        f"Встигніть скористатися пропозицією!"
+    )
+    buttons = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("➕ Додати зі знижкою", callback_data=f"discount_{p['name']}")],
+        [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
+    ])
+    await callback.message.answer_photo(photo=p['photo'], caption=caption, reply_markup=buttons)
+    await callback.answer()
 @dp.callback_query_handler(lambda c: c.data.startswith("discount_"))
 async def add_discount_to_cart(callback: types.CallbackQuery):
     name = callback.data.replace("discount_", "")
