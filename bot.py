@@ -477,31 +477,28 @@ async def back_to_city(callback: types.CallbackQuery, state: FSMContext):
 async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     delivery_type = data.get('delivery_type')
-    
-    if not delivery_type:
-        await message.answer("⚠️ Сталася помилка. Тип доставки не знайдено.")
-        return
-
-    if delivery_type == "delivery_post" and not message.text.isdigit():
-        await message.answer("❗ Введіть лише номер відділення цифрами.")
-        return
-
-    POST_SERVICES = {
-        "nova_post": "Нова Пошта",
-        "ukr_post": "Укрпошта"
-    }
 
     if delivery_type == "delivery_post":
-        post_service_key = data.get('post_service', '')
-        post_service = POST_SERVICES.get(post_service_key, '-')
-        address_or_post = f"{post_service} {message.text}"
+        # Перевірка, чи введено лише цифри (номер відділення)
+        if not message.text.isdigit():
+            await message.answer("❗ Введіть лише номер відділення цифрами.")
+            return
+
+        post_service = data.get('post_service', '')
+        if post_service == "nova_post":
+            service_name = "Нова Пошта"
+        elif post_service == "ukr_post":
+            service_name = "Укрпошта"
+        else:
+            service_name = "-"
+
+        address_or_post = f"{service_name}, відділення №{message.text}"
     else:
-        address_or_post = message.text
+        address_or_post = message.text  # Повна адреса
 
     await state.update_data(address_or_post=address_or_post)
 
-    # Формування підтвердження замовлення
-    data = await state.get_data()
+    # Формування повідомлення з підтвердженням
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     cart = apply_third_item_discount(cart)
@@ -515,12 +512,12 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     discount = user_discounts.get(user_id, 0)
     final = total - discount
 
-    order_summary = (
+    confirm_text = (
         f"📦 *Перевірте замовлення перед підтвердженням:*\n"
         f"👤 *ПІБ:* {data.get('name')}\n"
         f"📞 *Телефон:* {data.get('phone')}\n"
         f"🏙 *Місто:* {data.get('city')}\n"
-        f"📍 *Адреса / Відділення:* {data.get('address_or_post')}\n"
+        f"📍 *Адреса / Відділення:* {address_or_post}\n"
         f"🛍 *Товари в кошику:*\n{text_items}"
         f"💵 *Сума без знижок:* {total} грн\n"
         f"🎁 *Знижка:* {discount} грн\n"
@@ -533,7 +530,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
     )
 
-    await message.answer(order_summary, reply_markup=keyboard)
+    await message.answer(confirm_text, reply_markup=keyboard)
     await OrderStates.confirmation.set()
 
 
