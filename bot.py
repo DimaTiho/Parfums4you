@@ -221,7 +221,7 @@ PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
 # Підключення до Google Sheets
 import gspread
 gc = gspread.service_account(filename='path_to_your_credentials.json')
-spreadsheet = gc.open("Назва_вашої_таблиці")
+spreadsheet = gc.open("Parfums")
 reviews_sheet = spreadsheet.worksheet("Відгуки")  # 3-й аркуш
 
 class ReviewState(StatesGroup):
