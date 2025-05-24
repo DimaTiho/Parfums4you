@@ -498,65 +498,76 @@ async def show_cart(message: types.Message):
         return
 
     text = "🛒 *Ваш кошик:*\n"
+    keyboard = InlineKeyboardMarkup(row_width=3)
+    
     for i, item in enumerate(cart):
-        quantity = item.get('quantity', 1)  # захист від помилки
-        text += f"\n{i+1}. *{escape_md(item['name'])}* — {item['price']} грн × {quantity}\n"
-        text += f"➕ /add_{i+1}  ➖ /remove_{i+1}\n"
-
-    total = sum(item['price'] * item.get('quantity', 1) for item in cart)
+        text += f"\n{i+1}. *{escape_md(item['name'].capitalize())}* — {item['price']} грн × {item['quantity']}"
+        # Кнопки: +, -, видалити
+        keyboard.row(
+            InlineKeyboardButton("➕", callback_data=f"inc_{i}"),
+            InlineKeyboardButton("➖", callback_data=f"dec_{i}"),
+            InlineKeyboardButton("❌", callback_data=f"del_{i}")
+        )
+    total = sum(item['price'] * item['quantity'] for item in cart)
     text += f"\n*Загалом:* {total} грн"
-    await message.answer(text)
 
-    buttons.append([
+   keyboard.row(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
-        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
-    ])
-    buttons.append([
-        InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog"),
-        InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
-    ])
+        InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog")
+    )
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    await message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    # Якщо це оновлення існуючого повідомлення — редагуємо, інакше надсилаємо нове
+    try:
+        await message.edit_text(text, reply_markup=keyboard, parse_mode="MarkdownV2")
+    except:
+        await message.answer(text, reply_markup=keyboard, parse_mode="MarkdownV2")
 
-@dp.callback_query_handler(lambda c: c.data == "show_cart")
-async def show_cart_callback(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    await update_cart_message(callback.message, user_id)
-    await callback.answer()
-# Обробник кнопок зміни кількості товару в кошику
-@dp.callback_query_handler(lambda c: c.data.startswith(("add_item_", "remove_item_")))
-async def change_quantity_callback(callback: types.CallbackQuery):
+
+# Збільшити кількість товару
+@dp.callback_query_handler(lambda c: c.data.startswith("inc_"))
+async def increment_quantity(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
-    cmd = callback.data
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        cart[idx]['quantity'] += 1
+        await callback.answer("➕ Кількість збільшена")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
 
-    try:
-        idx = int(cmd.split("_")[-1])
-        if 0 <= idx < len(cart):
-            if cmd.startswith("add_item_"):
-                cart[idx]['quantity'] += 1
-            elif cmd.startswith("remove_item_"):
-                if cart[idx]['quantity'] > 1:
-                    cart[idx]['quantity'] -= 1
-                else:
-                    cart.pop(idx)
+    await update_cart_message(callback.message, user_id)
 
-            await update_cart_message(callback.message, user_id)
-            await callback.answer()
-        else:
-            await callback.answer("❗ Невірний номер товару.", show_alert=True)
-    except (IndexError, ValueError):
-        await callback.answer("❗ Невірна команда.", show_alert=True)
-      
-# Обробник кнопки очищення кошика
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart_callback(callback: types.CallbackQuery):
+# Зменшити кількість товару
+@dp.callback_query_handler(lambda c: c.data.startswith("dec_"))
+async def decrement_quantity(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    user_carts[user_id] = []
-    await callback.message.answer("🧹 Кошик очищено.")
-    await callback.answer()
+    cart = user_carts.get(user_id, [])
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        if cart[idx]['quantity'] > 1:
+            cart[idx]['quantity'] -= 1
+            await callback.answer("➖ Кількість зменшена")
+        else:
+            cart.pop(idx)
+            await callback.answer("❌ Товар видалено з кошика")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
 
+    await update_cart_message(callback.message, user_id)
+
+# Видалити товар з кошика
+@dp.callback_query_handler(lambda c: c.data.startswith("del_"))
+async def delete_item(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        removed = cart.pop(idx)
+        await callback.answer(f"❌ Видалено: {removed['name'].capitalize()}")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
+
+    await update_cart_message(callback.message, user_id)
 # Обробник кнопки оформлення замовлення
 @dp.callback_query_handler(lambda c: c.data == "checkout")
 async def checkout_callback(callback: types.CallbackQuery):
@@ -568,12 +579,17 @@ async def checkout_callback(callback: types.CallbackQuery):
     await callback.answer()
     await OrderStates.name.set()
     await callback.message.answer(
-        "📝 Починаємо оформлення замовлення.\nВведіть, будь ласка, ваше ім'я:",
+        "📝 Починаємо оформлення замовлення.\nВведіть ваше ПІБ:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🔙 Повернення", callback_data="back")]
         ])
     )
-
+@dp.callback_query_handler(lambda c: c.data == "back")
+async def back_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.finish()  # або повернутися на потрібний стан, якщо потрібно
+    # Наприклад, показати головне меню або каталог
+    await callback.message.answer("🔙 Повернення.")
+    await callback.answer()
 
 # === Оформлення замовлення ===
 
