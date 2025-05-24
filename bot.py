@@ -511,7 +511,7 @@ async def show_cart(message: types.Message):
     total = sum(item['price'] * item['quantity'] for item in cart)
     text += f"\n*Загалом:* {total} грн"
 
-   keyboard.row(
+    keyboard.row(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
         InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog")
     )
