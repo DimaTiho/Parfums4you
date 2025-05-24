@@ -1,6 +1,7 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import CallbackQuery
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
