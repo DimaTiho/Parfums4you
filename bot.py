@@ -218,20 +218,36 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
 used_promo_users = set()
 PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
 
+# Підключення до Google Sheets
+import gspread
+gc = gspread.service_account(filename='path_to_your_credentials.json')
+spreadsheet = gc.open("Назва_вашої_таблиці")
+reviews_sheet = spreadsheet.worksheet("Відгуки")  # 3-й аркуш
+
 class ReviewState(StatesGroup):
     waiting_text = State()
 
 @dp.callback_query_handler(lambda c: c.data == "reviews")
-async def ask_for_review(callback: types.CallbackQuery):
-    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче та отримай промо на наступне замовлення!:")
+async def ask_for_review(callback: CallbackQuery):
+    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче та отримайте промокод на наступне замовлення!")
     await ReviewState.waiting_text.set()
     await callback.answer()
 
 @dp.message_handler(state=ReviewState.waiting_text)
-async def receive_review(message: types.Message, state: FSMContext):
+async def receive_review(message: Message, state: FSMContext):
     user_id = message.from_user.id
+    review_text = message.text
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    try:
+        reviews_sheet.append_row([str(user_id), review_text, now_str])
+    except Exception as e:
+        await message.answer("Помилка збереження відгуку. Спробуйте пізніше.")
+        await state.finish()
+        return
+
     if user_id in used_promo_users:
-        await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
+        await message.answer("Дякуємо за відгук! Ви вже отримали промокод раніше.")
     else:
         if PROMO_CODES:
             promo = PROMO_CODES.pop()
@@ -239,7 +255,24 @@ async def receive_review(message: types.Message, state: FSMContext):
             promo = "PROMO10"
         used_promo_users.add(user_id)
         await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
+
     await state.finish()
+
+@dp.message_handler(commands=["reviews"])
+async def show_reviews(message: Message):
+    all_reviews = reviews_sheet.get_all_values()
+
+    if len(all_reviews) <= 1:
+        await message.answer("Поки що відгуків немає.")
+        return
+
+    reviews_texts = [row[1] for row in all_reviews[1:] if len(row) > 1 and row[1].strip()]
+
+    text = "*Відгуки наших клієнтів:*\n\n"
+    for r in reviews_texts[-5:]:
+        text += f"• {r}\n\n"
+
+    await message.answer(text, parse_mode="Markdown")
 
 
 # Блок: Акції та бонуси
@@ -250,7 +283,7 @@ async def promotions_handler(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def promotions_callback(callback_or_message):
     promo_text = (
-        "🎉 *Наявні акції:*"
+        "🎉 *Наявні акції:*\n"
         "1️⃣ *3-й парфум зі знижкою -50%*\n"
         "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n"
         "2️⃣ *Безкоштовна доставка від 500 грн*\n"
