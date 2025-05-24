@@ -117,8 +117,8 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("🌹💐Унісекс", callback_data="cat_unisex")],
-    [InlineKeyboardButton("‼️Топ продаж", callback_data="cat_top")],
+    [InlineKeyboardButton("🌸Жіночі", callback_data="cat_women"), InlineKeyboardButton("🥥🍓Унісекс", callback_data="cat_unisex")],
+    [InlineKeyboardButton("💣Топ продаж", callback_data="cat_top")],
     [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
 ])
 
@@ -443,7 +443,41 @@ async def remove_from_cart(message: types.Message):
             await message.answer("❗ Невірний номер товару.")
     except (IndexError, ValueError):
         await message.answer("❗ Введіть команду у форматі: Видалити 1")
+# === Кошик: Додавання/віднімання ===
+@dp.message_handler(lambda message: message.text.lower() == "кошик")
+async def show_cart(message: types.Message):
+    user_id = message.from_user.id
+    cart = user_carts.get(user_id, [])
+    if not cart:
+        await message.answer("🛒 Ваш кошик порожній.")
+        return
 
+    text = "🛒 *Ваш кошик:*\n"
+    for i, item in enumerate(cart):
+        text += f"\n{i+1}. *{escape_md(item['name'])}* — {item['price']} грн × {item['quantity']}\n"
+        text += f"➕ /add_{i+1}  ➖ /remove_{i+1}\n"
+
+    total = sum(item['price'] * item['quantity'] for item in cart)
+    text += f"\n*Загалом:* {total} грн"
+    await message.answer(text)
+
+# === Зміна кількості ===
+for i in range(1, 21):
+    @dp.message_handler(commands=[f"add_{i}"])
+    async def increase_item(message: types.Message, idx=i-1):
+        user_id = message.from_user.id
+        cart = user_carts.get(user_id, [])
+        if idx < len(cart):
+            cart[idx]['quantity'] += 1
+            await show_cart(message)
+
+    @dp.message_handler(commands=[f"remove_{i}"])
+    async def decrease_item(message: types.Message, idx=i-1):
+        user_id = message.from_user.id
+        cart = user_carts.get(user_id, [])
+        if idx < len(cart):
+            cart[idx]['quantity'] = max(1, cart[idx]['quantity'] - 1)
+            await show_cart(message)
 # === Оформлення замовлення ===
 
 
