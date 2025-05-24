@@ -462,12 +462,16 @@ async def promo_conditions(call: types.CallbackQuery):
     await call.answer()
 
 # Переглянути кошик
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram import types
+from aiogram.utils.markdown import escape_md
 
 user_carts = {}
 
-# Додати товар до кошика (через callback, наприклад "add_perfume1")
+async def update_cart_message(message: types.Message, user_id: int):
+    try:
+        await show_cart(message)
+    except Exception:
+        await message.answer("Помилка оновлення кошика.")
+
 @dp.callback_query_handler(lambda c: c.data.startswith("add_"))
 async def add_to_cart_callback(callback: types.CallbackQuery):
     perfume_name = callback.data[4:]
@@ -486,23 +490,20 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
         cart.append({"name": perfume_name, "price": 200, "quantity": 1})
 
     await callback.answer("✅ Товар додано в кошик")
-    # Оновлюємо повідомлення з кошиком, замість нового повідомлення
     await update_cart_message(callback.message, user_id)
-  
-# Показати кошик з кнопками для редагування кількості та оформлення
+
 async def show_cart(message: types.Message):
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await message.answer("🛒 Ваш кошик порожній.")
+        await message.edit_text("🛒 Ваш кошик порожній.")
         return
 
     text = "🛒 *Ваш кошик:*\n"
     keyboard = InlineKeyboardMarkup(row_width=3)
-    
+
     for i, item in enumerate(cart):
         text += f"\n{i+1}. *{escape_md(item['name'].capitalize())}* — {item['price']} грн × {item['quantity']}"
-        # Кнопки: +, -, видалити
         keyboard.row(
             InlineKeyboardButton("➕", callback_data=f"inc_{i}"),
             InlineKeyboardButton("➖", callback_data=f"dec_{i}"),
@@ -516,14 +517,11 @@ async def show_cart(message: types.Message):
         InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog")
     )
 
-    # Якщо це оновлення існуючого повідомлення — редагуємо, інакше надсилаємо нове
     try:
         await message.edit_text(text, reply_markup=keyboard, parse_mode="MarkdownV2")
     except:
         await message.answer(text, reply_markup=keyboard, parse_mode="MarkdownV2")
 
-
-# Збільшити кількість товару
 @dp.callback_query_handler(lambda c: c.data.startswith("inc_"))
 async def increment_quantity(callback: types.CallbackQuery):
     user_id = callback.from_user.id
@@ -537,7 +535,6 @@ async def increment_quantity(callback: types.CallbackQuery):
 
     await update_cart_message(callback.message, user_id)
 
-# Зменшити кількість товару
 @dp.callback_query_handler(lambda c: c.data.startswith("dec_"))
 async def decrement_quantity(callback: types.CallbackQuery):
     user_id = callback.from_user.id
@@ -555,7 +552,6 @@ async def decrement_quantity(callback: types.CallbackQuery):
 
     await update_cart_message(callback.message, user_id)
 
-# Видалити товар з кошика
 @dp.callback_query_handler(lambda c: c.data.startswith("del_"))
 async def delete_item(callback: types.CallbackQuery):
     user_id = callback.from_user.id
@@ -568,6 +564,7 @@ async def delete_item(callback: types.CallbackQuery):
         await callback.answer("❗ Невірний товар", show_alert=True)
 
     await update_cart_message(callback.message, user_id)
+
 # Обробник кнопки оформлення замовлення
 @dp.callback_query_handler(lambda c: c.data == "checkout")
 async def checkout_callback(callback: types.CallbackQuery):
