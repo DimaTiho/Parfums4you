@@ -462,39 +462,45 @@ async def promo_conditions(call: types.CallbackQuery):
     await call.answer()
 
 # Переглянути кошик
+# Ініціалізація кошика - кожен товар з quantity=1 при додаванні
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def add_to_cart_callback(callback: types.CallbackQuery):
+    perfume_name = callback.data[4:]
+    user_id = callback.from_user.id
+    if user_id not in user_carts:
+        user_carts[user_id] = []
+
+    # Перевірка чи товар вже є, щоб збільшити кількість
+    cart = user_carts[user_id]
+    for item in cart:
+        if item['name'] == perfume_name:
+            item['quantity'] += 1
+            break
+    else:
+        cart.append({"name": perfume_name, "price": 200, "quantity": 1})
+
+    buttons = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart"),
+            InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")
+        ],
+        [
+            InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
+        ]
+    ])
+    await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
+    await callback.answer()
+
+# Переглянути кошик (через команду або callback)
 @dp.message_handler(commands=["кошик", "cart"])
 async def view_cart(message: types.Message):
-    # Переадресація на функцію show_cart_callback з фейковим callback
-    class DummyCallback:
-        def __init__(self, user_id, message):
-            self.from_user = types.User(id=user_id, is_bot=False, first_name="User")
-            self.message = message
-            self.data = "show_cart"
-    await show_cart_callback(DummyCallback(message.from_user.id, message))
+    await show_cart(message)
 
-# Очистити кошик
-@dp.message_handler(commands=["очистити", "clear"])
-async def clear_cart(message: types.Message):
-    user_id = message.from_user.id
-    user_carts[user_id] = []
-    await message.answer("🧹 Кошик очищено.")
+@dp.callback_query_handler(lambda c: c.data == "show_cart")
+async def show_cart_callback(callback: types.CallbackQuery):
+    await show_cart(callback.message)
 
-# Видалити товар із кошика
-@dp.message_handler(lambda message: message.text.lower().startswith("видалити "))
-async def remove_from_cart(message: types.Message):
-    user_id = message.from_user.id
-    cart = user_carts.get(user_id, [])
-    try:
-        index = int(message.text.split()[1]) - 1
-        if 0 <= index < len(cart):
-            removed = cart.pop(index)
-            await message.answer(f"❌ Видалено: {removed['name']}")
-        else:
-            await message.answer("❗ Невірний номер товару.")
-    except (IndexError, ValueError):
-        await message.answer("❗ Введіть команду у форматі: Видалити 1")
-# === Кошик: Додавання/віднімання ===
-@dp.message_handler(lambda message: message.text.lower() == "кошик")
 async def show_cart(message: types.Message):
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
@@ -511,23 +517,61 @@ async def show_cart(message: types.Message):
     text += f"\n*Загалом:* {total} грн"
     await message.answer(text)
 
-# === Зміна кількості ===
-for i in range(1, 21):
-    @dp.message_handler(commands=[f"add_{i}"])
-    async def increase_item(message: types.Message, idx=i-1):
-        user_id = message.from_user.id
-        cart = user_carts.get(user_id, [])
-        if idx < len(cart):
-            cart[idx]['quantity'] += 1
-            await show_cart(message)
+# Очистити кошик
+@dp.message_handler(commands=["очистити", "clear"])
+async def clear_cart(message: types.Message):
+    user_id = message.from_user.id
+    user_carts[user_id] = []
+    await message.answer("🧹 Кошик очищено.")
 
-    @dp.message_handler(commands=[f"remove_{i}"])
-    async def decrease_item(message: types.Message, idx=i-1):
-        user_id = message.from_user.id
-        cart = user_carts.get(user_id, [])
-        if idx < len(cart):
-            cart[idx]['quantity'] = max(1, cart[idx]['quantity'] - 1)
-            await show_cart(message)
+# Видалити товар із кошика за номером
+@dp.message_handler(lambda message: message.text.lower().startswith("видалити "))
+async def remove_from_cart(message: types.Message):
+    user_id = message.from_user.id
+    cart = user_carts.get(user_id, [])
+    try:
+        index = int(message.text.split()[1]) - 1
+        if 0 <= index < len(cart):
+            removed = cart.pop(index)
+            await message.answer(f"❌ Видалено: {removed['name']}")
+        else:
+            await message.answer("❗ Невірний номер товару.")
+    except (IndexError, ValueError):
+        await message.answer("❗ Введіть команду у форматі: Видалити 1")
+
+# Зміна кількості (динамічна обробка команд add_i та remove_i)
+@dp.message_handler(lambda message: message.text.lower().startswith(("add_", "remove_")))
+async def change_quantity(message: types.Message):
+    user_id = message.from_user.id
+    cart = user_carts.get(user_id, [])
+    cmd = message.text.lower()
+
+    # Визначення дії та індексу
+    if cmd.startswith("add_"):
+        try:
+            idx = int(cmd.split("_")[1]) - 1
+            if 0 <= idx < len(cart):
+                cart[idx]['quantity'] += 1
+                await show_cart(message)
+            else:
+                await message.answer("❗ Невірний номер товару.")
+        except (IndexError, ValueError):
+            await message.answer("❗ Невірна команда.")
+    elif cmd.startswith("remove_"):
+        try:
+            idx = int(cmd.split("_")[1]) - 1
+            if 0 <= idx < len(cart):
+                if cart[idx]['quantity'] > 1:
+                    cart[idx]['quantity'] -= 1
+                else:
+                    # Якщо кількість 1, видаляємо товар з кошика
+                    cart.pop(idx)
+                await show_cart(message)
+            else:
+                await message.answer("❗ Невірний номер товару.")
+        except (IndexError, ValueError):
+            await message.answer("❗ Невірна команда.")
+
 # === Оформлення замовлення ===
 
 
