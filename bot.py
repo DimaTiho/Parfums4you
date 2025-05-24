@@ -500,6 +500,8 @@ async def view_cart(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "show_cart")
 async def show_cart_callback(callback: types.CallbackQuery):
     await show_cart(callback.message)
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.markdown import escape_md
 
 async def show_cart(message: types.Message):
     user_id = message.from_user.id
@@ -509,14 +511,21 @@ async def show_cart(message: types.Message):
         return
 
     text = "🛒 *Ваш кошик:*\n"
+    keyboard = InlineKeyboardMarkup(row_width=4)
+
     for i, item in enumerate(cart):
         text += f"\n{i+1}. *{escape_md(item['name'])}* — {item['price']} грн × {item['quantity']}\n"
-        text += f"➕ /add_{i+1}  ➖ /remove_{i+1}\n"
+        # Кнопки для +, -, видалити
+        keyboard.add(
+            InlineKeyboardButton(f"➕", callback_data=f"add_{i}"),
+            InlineKeyboardButton(f"➖", callback_data=f"remove_{i}"),
+            InlineKeyboardButton(f"❌ Видалити", callback_data=f"delete_{i}")
+        )
 
     total = sum(item['price'] * item['quantity'] for item in cart)
     text += f"\n*Загалом:* {total} грн"
-    await message.answer(text)
 
+    await message.answer(text, reply_markup=keyboard)
 # Очистити кошик
 @dp.message_handler(commands=["очистити", "clear"])
 async def clear_cart(message: types.Message):
