@@ -567,7 +567,7 @@ async def checkout_callback(callback: types.CallbackQuery):
     if not cart:
         await callback.answer("🛒 Ваш кошик порожній.", show_alert=True)
         return
-   await callback.answer()
+    await callback.answer()
     await OrderStates.name.set()
     await callback.message.answer(
         "📝 Починаємо оформлення замовлення.\nВведіть, будь ласка, ваше ім'я:",
