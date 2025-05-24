@@ -490,24 +490,22 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     await update_cart_message(callback.message, user_id)
   
 # Показати кошик з кнопками для редагування кількості та оформлення
-async def update_cart_message(message: types.Message, user_id: int):
+async def show_cart(message: types.Message):
+    user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await message.edit_text("🛒 Ваш кошик порожній.")
+        await message.answer("🛒 Ваш кошик порожній.")
         return
 
     text = "🛒 *Ваш кошик:*\n"
-    buttons = []
-
     for i, item in enumerate(cart):
-        text += f"\n{i+1}. *{item['name']}* — {item['price']} грн × {item['quantity']}\n"
-        buttons.append([
-            InlineKeyboardButton("➕", callback_data=f"add_item_{i}"),
-            InlineKeyboardButton("➖", callback_data=f"remove_item_{i}")
-        ])
+        quantity = item.get('quantity', 1)  # захист від помилки
+        text += f"\n{i+1}. *{escape_md(item['name'])}* — {item['price']} грн × {quantity}\n"
+        text += f"➕ /add_{i+1}  ➖ /remove_{i+1}\n"
 
-    total = sum(item['price'] * item['quantity'] for item in cart)
+    total = sum(item['price'] * item.get('quantity', 1) for item in cart)
     text += f"\n*Загалом:* {total} грн"
+    await message.answer(text)
 
     buttons.append([
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
