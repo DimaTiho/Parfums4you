@@ -36,7 +36,7 @@ except:
 
 
 # Ініціалізація бота і диспетчера
-bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
+bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN_V2)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 # Стан машини
