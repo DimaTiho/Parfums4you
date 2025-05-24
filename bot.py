@@ -567,9 +567,14 @@ async def checkout_callback(callback: types.CallbackQuery):
     if not cart:
         await callback.answer("🛒 Ваш кошик порожній.", show_alert=True)
         return
-    # Тут викликається твоя існуюча логіка оформлення замовлення
-    await callback.message.answer("📝 Починаємо оформлення замовлення...")
-    await callback.answer()
+   await callback.answer()
+    await OrderStates.name.set()
+    await callback.message.answer(
+        "📝 Починаємо оформлення замовлення.\nВведіть, будь ласка, ваше ім'я:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton("🔙 Повернення", callback_data="back")]
+        ])
+    )
 
 
 # === Оформлення замовлення ===
