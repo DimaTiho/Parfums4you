@@ -470,12 +470,14 @@ user_carts = {}
 # Додати товар до кошика (через callback, наприклад "add_perfume1")
 @dp.callback_query_handler(lambda c: c.data.startswith("add_"))
 async def add_to_cart_callback(callback: types.CallbackQuery):
-    perfume_name = callback.data[4:]  # після "add_"
+    perfume_name = callback.data[4:]
     user_id = callback.from_user.id
+
     if user_id not in user_carts:
         user_carts[user_id] = []
 
     cart = user_carts[user_id]
+
     for item in cart:
         if item['name'] == perfume_name:
             item['quantity'] += 1
@@ -483,15 +485,15 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     else:
         cart.append({"name": perfume_name, "price": 200, "quantity": 1})
 
-    await show_cart(callback.message)
-    await callback.answer()
-
+    await callback.answer("✅ Товар додано в кошик")
+    # Оновлюємо повідомлення з кошиком, замість нового повідомлення
+    await update_cart_message(callback.message, user_id)
+  
 # Показати кошик з кнопками для редагування кількості та оформлення
-async def show_cart(message: types.Message):
-    user_id = message.from_user.id
+async def update_cart_message(message: types.Message, user_id: int):
     cart = user_carts.get(user_id, [])
     if not cart:
-        await message.answer("🛒 Ваш кошик порожній.")
+        await message.edit_text("🛒 Ваш кошик порожній.")
         return
 
     text = "🛒 *Ваш кошик:*\n"
@@ -499,7 +501,6 @@ async def show_cart(message: types.Message):
 
     for i, item in enumerate(cart):
         text += f"\n{i+1}. *{item['name']}* — {item['price']} грн × {item['quantity']}\n"
-        # Кнопки + і - для кожного товару
         buttons.append([
             InlineKeyboardButton("➕", callback_data=f"add_item_{i}"),
             InlineKeyboardButton("➖", callback_data=f"remove_item_{i}")
@@ -508,7 +509,6 @@ async def show_cart(message: types.Message):
     total = sum(item['price'] * item['quantity'] for item in cart)
     text += f"\n*Загалом:* {total} грн"
 
-    # Кнопки оформлення, очищення, повернення, головне меню
     buttons.append([
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
         InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
@@ -519,8 +519,13 @@ async def show_cart(message: types.Message):
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    await message.answer(text, reply_markup=keyboard)
+    await message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
+@dp.callback_query_handler(lambda c: c.data == "show_cart")
+async def show_cart_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    await update_cart_message(callback.message, user_id)
+    await callback.answer()
 # Обробник кнопок зміни кількості товару в кошику
 @dp.callback_query_handler(lambda c: c.data.startswith(("add_item_", "remove_item_")))
 async def change_quantity_callback(callback: types.CallbackQuery):
@@ -538,13 +543,14 @@ async def change_quantity_callback(callback: types.CallbackQuery):
                     cart[idx]['quantity'] -= 1
                 else:
                     cart.pop(idx)
-            await show_cart(callback.message)
+
+            await update_cart_message(callback.message, user_id)
             await callback.answer()
         else:
             await callback.answer("❗ Невірний номер товару.", show_alert=True)
     except (IndexError, ValueError):
         await callback.answer("❗ Невірна команда.", show_alert=True)
-
+      
 # Обробник кнопки очищення кошика
 @dp.callback_query_handler(lambda c: c.data == "clear_cart")
 async def clear_cart_callback(callback: types.CallbackQuery):
