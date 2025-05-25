@@ -1,8 +1,62 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import Message
-from aiogram.types import CallbackQuery
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import random
+from aiogram.utils.markdown import escape_md  # Безпека Markdown
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO)
+
+# Конфігурація
+BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
+GOOGLE_SHEET_NAME = 'Parfums'
+CREDENTIALS_FILE = 'credentials.json'
+
+# Google Sheets
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+client = gspread.authorize(creds)
+workbook = client.open(GOOGLE_SHEET_NAME)
+sheet = workbook.sheet1
+try:
+    analytics_sheet = workbook.worksheet("Аналітика")
+except:
+    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
+    analytics_sheet.update("A1", [["Показник", "Значення"],
+                                   ["Усього замовлень", ""],
+                                   ["Загальна сума", ""],
+                                   ["Загальний прибуток", ""],
+                                   ["Найпопулярніший аромат", ""]])
+
+# Ініціалізація бота
+bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
+dp = Dispatcher(bot, storage=MemoryStorage())
+
+# Стан оформлення
+class OrderStates(StatesGroup):
+    name = State()
+    phone = State()
+    city = State()
+    delivery_type = State()
+    post_service = State()
+    address_or_post = State()
+    confirmation = State()
+
+# Зберігання даних користувачів
+user_carts = {}
+user_discounts = {}
+user_data = {}
+
+import logging
+import asyncio
+from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -38,7 +92,7 @@ except:
 
 
 # Ініціалізація бота і диспетчера
-bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN_V2)
+bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 # Стан машини
@@ -119,8 +173,8 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("🌹💐Унісекс", callback_data="cat_unisex")],
-    [InlineKeyboardButton("‼️Топ продаж", callback_data="cat_top")],
+    [InlineKeyboardButton("🌸Жіночі", callback_data="cat_women"), InlineKeyboardButton("🥥🍓Унісекс", callback_data="cat_unisex")],
+    [InlineKeyboardButton("💣Топ продаж", callback_data="cat_top")],
     [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
 ])
 
@@ -217,140 +271,65 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 # === Відгуки з промокодом ===
-used_promo_users = set()
-PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
-
-# Підключення до Google Sheets
-import gspread
-gc = gspread.service_account(filename='credentials.json')
-spreadsheet = gc.open("Parfums")
-reviews_sheet = spreadsheet.worksheet("Відгуки")  # 3-й аркуш
-
-class ReviewState(StatesGroup):
-    waiting_text = State()
-
-@dp.callback_query_handler(lambda c: c.data == "reviews")
-async def ask_for_review(callback: CallbackQuery):
-    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче та отримайте промокод на наступне замовлення!")
-    await ReviewState.waiting_text.set()
-    await callback.answer()
-
-@dp.message_handler(state=ReviewState.waiting_text)
-async def receive_review(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-    review_text = message.text
-
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    try:
-        reviews_sheet.append_row([str(user_id), review_text, now_str])
-    except Exception as e:
-        await message.answer("Помилка збереження відгуку. Спробуйте пізніше.")
-        await state.finish()
-        return
-
-    if user_id in used_promo_users:
-        await message.answer("Дякуємо за відгук! Ви вже отримали промокод раніше.")
-    else:
-        if PROMO_CODES:
-            promo = PROMO_CODES.pop()
-        else:
-            promo = "PROMO10"
-        used_promo_users.add(user_id)
-        await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
-
-    await state.finish()
-
-@dp.message_handler(commands=["reviews"])
-async def show_reviews(message: Message):
-    all_reviews = reviews_sheet.get_all_values()
-
-    if len(all_reviews) <= 1:
-        await message.answer("Поки що відгуків немає.")
-        return
-
-    reviews_texts = [row[1] for row in all_reviews[1:] if len(row) > 1 and row[1].strip()]
-
-    text = "*Відгуки наших клієнтів:*\n\n"
-    for r in reviews_texts[-5:]:
-        text += f"• {r}\n\n"
-
-    await message.answer(text, parse_mode="Markdown")
-
 
 # Блок: Акції та бонуси
-@dp.message_handler(lambda message: message.text == "Акції та бонуси")
-async def promotions_handler(message: types.Message):
-    await promotions_callback(message)
 
-@dp.callback_query_handler(lambda c: c.data == "promotions")
-async def promotions_callback(callback_or_message):
-    promo_text = (
-        "🎉 *Наявні акції:*\n"
-        "1️⃣ *3-й парфум зі знижкою -50%*\n"
-        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n"
-        "2️⃣ *Безкоштовна доставка від 500 грн*\n"
-        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!\n"
-        "3️⃣ *Знижка для подруг — 10% кожній!*\n"
-        "Запросіть подругу — обидві отримаєте знижку після замовлення.\n"
-        "4️⃣ *Набір зі знижкою -15%*\n"
-        "При покупці 3+ парфумів — знижка 15% на кожен.\n"
-    )
+# Функція застосування знижок у кошику
+def apply_discounts(cart, user_id):
+    total = sum(item['price'] for item in cart)
+    discount = 0
+    details = []
 
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови з подругою", callback_data="promo_cond_3"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови набору зі знижкою", callback_data="promo_cond_4"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
-    )
+    # Акція 1: 3-й парфум зі знижкою 50% на найменший за ціною третій товар
+    if len(cart) >= 3:
+        sorted_cart = sorted(cart, key=lambda x: x['price'])
+        # Знижка на кожен 3-й товар
+        count_3rd = len(cart) // 3
+        discount_3rd = sum(sorted_cart[i * 3 + 2]['price'] * 0.5 for i in range(count_3rd))
+        discount += discount_3rd
+        if discount_3rd > 0:
+            details.append(f"Знижка 50% на {count_3rd} третій парфум: -{int(discount_3rd)} грн")
 
-    if isinstance(callback_or_message, types.CallbackQuery):
-        await callback_or_message.message.answer(promo_text, reply_markup=keyboard)
-        await callback_or_message.answer()
-    else:
-        await callback_or_message.answer(promo_text, reply_markup=keyboard)
+    # Акція 2: Безкоштовна доставка від 600 грн
+    # (припускаємо, що доставка додається пізніше, тут лише перевірка)
+    free_delivery_min_sum = 600
 
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
-async def promo_conditions(call: types.CallbackQuery):
-    conditions = {
-        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*"
-"Купіть будь-які 2 парфуми та отримайте третій зі знижкою 50%."
-"Знижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
-        "promo_cond_2": "🚚 *Безкоштовна доставка від 500 грн*"
-"Загальна сума без урахування доставки має перевищувати 500 грн.",
-        "promo_cond_3": "👭 *Знижка для подруг — 10% кожній!*"
-"Надішліть посилання подрузі. Обидві отримаєте знижку після замовлення.",
-        "promo_cond_4": "🎁 *Набір зі знижкою -15%*"
-"При купівлі 3 або більше парфумів — знижка 15% на кожен."
-    }
-    await call.message.answer(conditions[call.data])
-    await call.answer()
+    # Акція 3: 1+1 зі знижкою 30% на другий товар (парфуми у парі)
+    # Сортуємо по імені, застосовуємо для пар однакових парфумів
+    from collections import Counter
+    counter = Counter(item['name'] for item in cart)
+    for name, count in counter.items():
+        pairs = count // 2
+        if pairs > 0:
+            # Знижка 30% на другий товар у кожній парі
+            price_of_item = next(item['price'] for item in cart if item['name'] == name)
+            discount_1plus1 = pairs * price_of_item * 0.3
+            discount += discount_1plus1
+            details.append(f"Знижка 30% на другий парфум '{name}' (в {pairs} парах): -{int(discount_1plus1)} грн")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
-async def add_to_cart_callback(callback: types.CallbackQuery):
-    perfume_name = callback.data[4:]
-    user_id = callback.from_user.id
-    if user_id not in user_carts:
-        user_carts[user_id] = []
-    user_carts[user_id].append({"name": perfume_name, "price": 200})
+    # Акція 4: Пакетна пропозиція 4 парфуми за 680 грн (рівно 4 одиниці)
+    if len(cart) == 4:
+        price_sum_4 = sum(item['price'] for item in cart)
+        if price_sum_4 > 680:
+            discount_4pack = price_sum_4 - 680
+            discount += discount_4pack
+            details.append(f"Пакетна ціна 4 парфуми за 680 грн: -{int(discount_4pack)} грн")
 
-    buttons = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart"),
-            InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")
-        ],
-        [
-            InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
-            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
-        ]
-    ])
-    await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
-    await callback.answer()
+    # Акція 5: Знижка 20% при замовленні від 5 одиниць на кожен наступний товар (крім "Знижка дня")
+    if len(cart) >= 5:
+        # Застосовуємо 20% знижку на товари з 6-го і далі
+        sorted_cart = sorted(cart, key=lambda x: x['price'])
+        extra_items = len(cart) - 5
+        if extra_items > 0:
+            discount_20 = sum(sorted_cart[5:][i]['price'] * 0.2 for i in range(extra_items))
+            discount += discount_20
+            details.append(f"Знижка 20% на {extra_items} товари після 5-го: -{int(discount_20)} грн")
+
+    # Акція 6: Безкоштовна доставка на перше замовлення від 2 шт (текстова логіка)
+    # Тут додаткові перевірки можна додати на етапі оформлення замовлення
+
+    return int(discount), details
+
 
 @dp.callback_query_handler(lambda c: c.data == "show_cart")
 async def show_cart_callback(callback: types.CallbackQuery):
@@ -361,29 +340,32 @@ async def show_cart_callback(callback: types.CallbackQuery):
             inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
         return
 
-    cart = apply_third_item_discount(cart)
-    counted = {}
-    total = 0
-    for item in cart:
-        name = item['name']
-        if name not in counted:
-            counted[name] = {'count': 1, 'price': item['price']}
-        else:
-            counted[name]['count'] += 1
-            counted[name]['price'] += item['price']
-        total += item['price']
+    total = sum(item['price'] for item in cart)
+    discount, discount_details = apply_discounts(cart, user_id)
+    final_price = total - discount
 
-    text = "*Ваш кошик:*"
+    counted = {}
+    for item in cart:
+        if item['name'] not in counted:
+            counted[item['name']] = {'count': 1, 'price': item['price']}
+        else:
+            counted[item['name']]['count'] += 1
+            counted[item['name']]['price'] += item['price']
+
+    text = "*Ваш кошик:*\n"
     i = 1
     for name, data in counted.items():
-        text += f"{i}. {name} — {data['count']} шт. x {round(data['price'] / data['count'])} грн = {data['price']} грн"
+        unit_price = round(data['price'] / data['count'])
+        text += f"{i}. {name} — {data['count']} шт. x {unit_price} грн = {data['price']} грн\n"
         i += 1
 
-    discount = user_discounts.get(user_id, 0)
-    final_price = total - discount
-    text += f"💵 Сума без знижок: {total} грн"
-    if discount:
-        text += f"🎁 Знижка: {discount} грн"
+    text += f"\n💵 Сума без знижок: {total} грн\n"
+    if discount > 0:
+        text += "🎁 Знижки:\n"
+        for d in discount_details:
+            text += f" - {d}\n"
+        text += f"✅ До сплати: {final_price} грн"
+    else:
         text += f"✅ До сплати: {final_price} грн"
 
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -395,89 +377,147 @@ async def show_cart_callback(callback: types.CallbackQuery):
     await callback.message.answer(text, reply_markup=keyboard)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("increase_"))
-async def increase_item_quantity(callback: types.CallbackQuery):
-    name = callback.data.replace("increase_", "")
-    user_id = callback.from_user.id
-    user_carts.setdefault(user_id, []).append({"name": name, "price": 200})
-    await show_cart_callback(callback)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("decrease_"))
-async def decrease_item_quantity(callback: types.CallbackQuery):
-    name = callback.data.replace("decrease_", "")
-    user_id = callback.from_user.id
-    cart = user_carts.get(user_id, [])
-    for i, item in enumerate(cart):
-        if item["name"] == name:
-            cart.pop(i)
-            break
-    await show_cart_callback(callback)
+# Оновлення тексту акцій
+@dp.callback_query_handler(lambda c: c.data == "promotions")
+async def promotions_callback(callback_or_message):
+    promo_text = (
+        "🎉 *Наявні акції:*\n"
+        "1️⃣ *3-й парфум зі знижкою -50%*\n"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n\n"
+        "2️⃣ *Безкоштовна доставка від 600 грн*\n"
+        "Оформіть замовлення на суму від 600 грн (без доставки) — ми доставимо безкоштовно!\n\n"
+        "3️⃣ *1+1 зі знижкою 30% на другий товар*\n"
+        "Купуйте один парфум, другий отримаєте зі знижкою 30%\n\n"
+        "4️⃣ *Пакетна пропозиція: 4 парфуми за 680 грн*\n"
+        "Акція діє при замовленні рівно 4 одиниць.\n\n"
+        "5️⃣ *Знижка 20% від 5 одиниць*\n"
+        "При замовленні від 5 одиниць — знижка 20% на кожен наступний товар.\n\n"
+        "6️⃣ *Безкоштовна доставка на перше замовлення від 2 шт*\n"
+        "Акція не сумується з іншими знижками.\n\n"
+        "7️⃣ *Розіграш серед нових покупців*\n"
+        "Приймайте участь та вигравайте призи!\n"
+    )
 
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart_callback(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    user_carts[user_id] = []
-    await callback.message.answer("🧹 Кошик очищено.")
-    await callback.answer()
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📄 Умови 1+1 зі знижкою", callback_data="promo_cond_3"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📄 Умови пакетної пропозиції", callback_data="promo_cond_4"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📄 Умови знижки від 5 одиниць", callback_data="promo_cond_5"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("📄 Умови безкоштовної доставки на перше замовлення", callback_data="promo_cond_6"),
+        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
+    )
 
-@dp.callback_query_handler(lambda c: c.data == "checkout")
-async def checkout_handler(callback: types.CallbackQuery):
-    await callback.message.answer("✍️ Введіть ваше *ПІБ* для оформлення замовлення:")
-    await OrderStates.name.set()
-    await callback.answer()
+    if isinstance(callback_or_message, types.CallbackQuery):
+        await callback_or_message.message.answer(promo_text, reply_markup=keyboard)
+        await callback_or_message.answer()
+    else:
+        await callback_or_message.answer(promo_text, reply_markup=keyboard)
 
 
-@dp.message_handler(lambda message: message.text.lower().startswith("додати "))
-async def add_to_cart(message: types.Message):
-    user_id = message.from_user.id
-    parts = message.text.split(" ", 2)
-    if len(parts) < 3:
-        await message.answer("❗ Введіть команду у форматі: Додати Назва Ціна")
-        return
-    name = parts[1]
-    try:
-        price = int(parts[2])
-    except ValueError:
-        await message.answer("❗ Ціна повинна бути числом.")
-        return
-
-    if user_id not in user_carts:
-        user_carts[user_id] = []
-    user_carts[user_id].append({"name": name, "price": price})
-    await message.answer(f"✅ {name} додано до кошика за {price} грн.")
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
+async def promo_conditions(call: types.CallbackQuery):
+    conditions = {
+        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*\nКупіть будь-які 2 парфуми та отримайте третій зі знижкою 50%.\nЗнижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
+        "promo_cond_2": "🚚 *Безкоштовна доставка від 600 грн*\nЗагальна сума без урахування доставки має перевищувати 600 грн.",
+        "promo_cond_3": "🛍 *1+1 зі знижкою 30%*\nКупуйте один парфум, другий отримаєте зі знижкою 30%.",
+        "promo_cond_4": "🎁 *Пакетна пропозиція: 4 парфуми за 680 грн*\nАкція діє при замовленні рівно 4 одиниць.",
+        "promo_cond_5": "🔟 *Знижка 20% від 5 одиниць*\nПри замовленні від 5 одиниць — знижка 20% на кожен наступний товар.",
+        "promo_cond_6": "🎉 *Безкоштовна доставка на перше замовлення від 2 шт*\nАкція не сумується з іншими знижками."
+    }
+    await call.message.answer(conditions[call.data])
+    await call.answer()
 
 # Переглянути кошик
-@dp.message_handler(commands=["кошик", "cart"])
-async def view_cart(message: types.Message):
-    # Переадресація на функцію show_cart_callback з фейковим callback
-    class DummyCallback:
-        def __init__(self, user_id, message):
-            self.from_user = types.User(id=user_id, is_bot=False, first_name="User")
-            self.message = message
-            self.data = "show_cart"
-    await show_cart_callback(DummyCallback(message.from_user.id, message))
+from aiogram.utils.markdown import escape_md
 
-# Очистити кошик
-@dp.message_handler(commands=["очистити", "clear"])
-async def clear_cart(message: types.Message):
-    user_id = message.from_user.id
-    user_carts[user_id] = []
-    await message.answer("🧹 Кошик очищено.")
+user_carts = {}
 
-# Видалити товар із кошика
-@dp.message_handler(lambda message: message.text.lower().startswith("видалити "))
-async def remove_from_cart(message: types.Message):
-    user_id = message.from_user.id
-    cart = user_carts.get(user_id, [])
+# --- Функція для підрахунку суми з урахуванням акцій ---
+def calculate_cart_total_and_discount(cart):
+    total_quantity = sum(item['quantity'] for item in cart)
+    prices_list = []
+    total = 0
+    for item in cart:
+        total += item['price'] * item['quantity']
+        prices_list.extend([item['price']] * item['quantity'])
+    prices_list.sort()
+    
+    discount = 0
+    # Приклад логіки: знижка 30% на кожен третій товар (або на найдешевший серед кожних трьох)
+    # При цьому Знижка дня не сумується з іншими акціями, перевірку тут можна додати, наприклад:
+    other_promos_active = False  # тут вставити перевірку, чи активна "Знижка дня"
+    
+    if not other_promos_active and total_quantity >= 3:
+        thirds = total_quantity // 3
+        for i in range(thirds):
+            # Знижка на кожен третій найдешевший товар
+            discount += prices_list[i*3] * 0.3
+    
+    final_total = total - discount
+    return final_total, discount
+
+async def update_cart_message(message: types.Message, user_id: int):
     try:
-        index = int(message.text.split()[1]) - 1
-        if 0 <= index < len(cart):
-            removed = cart.pop(index)
-            await message.answer(f"❌ Видалено: {removed['name']}")
-        else:
-            await message.answer("❗ Невірний номер товару.")
-    except (IndexError, ValueError):
-        await message.answer("❗ Введіть команду у форматі: Видалити 1")
+        await show_cart(message, edit=True)
+    except Exception:
+        await message.answer("Помилка оновлення кошика.")
+
+# Простий робочий кошик
+user_carts = {}  # {user_id: [ {"name": str, "price": int}, ... ]}
+
+@dp.callback_query_handler(lambda c: c.data == "show_cart")
+async def show_cart_simple(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    if not cart:
+        await callback.message.answer(
+            "🛒 Ваш кошик порожній.", reply_markup=main_menu
+        )
+        return
+
+    total = sum(item['price'] for item in cart)
+    lines = [f"{i+1}. {item['name']} — {item['price']} грн" for i, item in enumerate(cart)]
+    text = "🛒 *Ваш кошик:*\n" + "\n".join(lines)
+    text += f"\n\n*Загалом:* {total} грн"
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
+        [InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")],
+        [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
+    ])
+    await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+# Обробник кнопки оформлення замовлення
+@dp.callback_query_handler(lambda c: c.data == "checkout")
+async def checkout_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    if not cart:
+        await callback.answer("🛒 Ваш кошик порожній.", show_alert=True)
+        return
+    await callback.answer()
+    await OrderStates.name.set()
+    await callback.message.answer(
+        "📝 Починаємо оформлення замовлення.\nВведіть ваше ПІБ:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton("🔙 Повернення", callback_data="back")]
+        ])
+    )
+@dp.callback_query_handler(lambda c: c.data == "back")
+async def back_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.finish()  # або повернутися на потрібний стан, якщо потрібно
+    # Наприклад, показати головне меню або каталог
+    await callback.message.answer("🔙 Повернення.")
+    await callback.answer()
 
 # === Оформлення замовлення ===
 
@@ -739,3 +779,20 @@ if __name__ == '__main__':
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
 
+
+# (при необхідності умовні блоки promo_cond можна додати аналогічно)
+
+# ======================= Приклади інтеграції при оформленні =======================
+# cart=user_carts[user_id]
+# cart_pr=apply_all_promotions(cart)
+# total = sum(i['price']*i['quantity'] for i in cart_pr)
+# qty = sum(i['quantity'] for i in cart_pr)
+# promo_applied = cart_pr!=cart
+# free = is_free_delivery(total, user_data[user_id].get('order_count',0), qty, promo_applied)
+
+# Решта вашого коду без змін: обробники /start, каталог, show_cart, checkout, save to sheet, etc.
+
+if __name__=='__main__':
+    loop=asyncio.get_event_loop()
+    loop.create_task(asyncio.sleep(0))
+    executor.start_polling(dp, skip_updates=True)
