@@ -31,22 +31,22 @@ PARFUM_PRICE = 200
 # Заглушки парфумів (назва + фото URL)
 PARFUMS = {
     'Жіночі': [
-        {'id': 'w1', 'name': 'Романтична ніч', 'photo': 'https://i.imgur.com/OaY3nI1.jpg'},
-        {'id': 'w2', 'name': 'Весняний вітер', 'photo': 'https://i.imgur.com/NzId81A.jpg'},
-        {'id': 'w3', 'name': 'Таємничий сад', 'photo': 'https://i.imgur.com/81M6cNs.jpg'},
-        {'id': 'w4', 'name': 'Легка хмара', 'photo': 'https://i.imgur.com/XkMnEaH.jpg'},
+        {'id': 'w1', 'name': 'Романтична ніч', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'w2', 'name': 'Весняний вітер', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'w3', 'name': 'Таємничий сад', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'w4', 'name': 'Легка хмара', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
     ],
     'Унісекс': [
-        {'id': 'u1', 'name': 'Світло дня', 'photo': 'https://i.imgur.com/7XIkpLD.jpg'},
-        {'id': 'u2', 'name': 'Міський ритм', 'photo': 'https://i.imgur.com/wlnrZY3.jpg'},
-        {'id': 'u3', 'name': 'Північна зоря', 'photo': 'https://i.imgur.com/7BhZqRm.jpg'},
-        {'id': 'u4', 'name': 'Лісова прохолода', 'photo': 'https://i.imgur.com/GtUMLwP.jpg'},
+        {'id': 'u1', 'name': 'Світло дня', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'u2', 'name': 'Міський ритм', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'u3', 'name': 'Північна зоря', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 'u4', 'name': 'Лісова прохолода', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
     ],
     'ТОП ПРОДАЖ': [
-        {'id': 't1', 'name': 'Вогняний спалах', 'photo': 'https://i.imgur.com/gERt9dB.jpg'},
-        {'id': 't2', 'name': 'Свіжий подих', 'photo': 'https://i.imgur.com/9J3jE9v.jpg'},
-        {'id': 't3', 'name': 'Нічна мелодія', 'photo': 'https://i.imgur.com/v4jJLuF.jpg'},
-        {'id': 't4', 'name': 'Сонячний промінь', 'photo': 'https://i.imgur.com/Dw1HXpe.jpg'},
+        {'id': 't1', 'name': 'Вогняний спалах', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 't2', 'name': 'Свіжий подих', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 't3', 'name': 'Нічна мелодія', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+        {'id': 't4', 'name': 'Сонячний промінь', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
     ],
 }
 
@@ -386,7 +386,7 @@ async def clear_cart(callback: types.CallbackQuery):
     await callback.message.edit_caption("Ваш кошик порожній.", reply_markup=main_menu_kb())
     
 
---- ОФОРМЛЕННЯ ЗАМОВЛЕННЯ ---
+# --- ОФОРМЛЕННЯ ЗАМОВЛЕННЯ ---
 @dp.callback_query_handler(lambda c: c.data == "order")
 async def start_order(callback: types.CallbackQuery):
     cart = get_cart(callback.message.chat.id)
