@@ -420,7 +420,7 @@ else:
 user_carts[user_id] = []
 await state.finish()
 
-====== Функція запису в Google Sheets ======
+
 async def write_order_to_gs(row):
     loop = asyncio.get_event_loop()
     try:
