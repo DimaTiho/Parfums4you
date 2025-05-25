@@ -1,4 +1,4 @@
- import logging
+import logging
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -54,6 +54,56 @@ user_carts = {}
 user_discounts = {}
 user_data = {}
 
+import logging
+import asyncio
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import random
+from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO)
+
+# Telegram токен
+BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
+GOOGLE_SHEET_NAME = 'Parfums'
+CREDENTIALS_FILE = 'credentials.json'
+# === Google Sheets ===
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+client = gspread.authorize(creds)
+workbook = client.open(GOOGLE_SHEET_NAME)
+sheet = workbook.sheet1
+try:
+    analytics_sheet = workbook.worksheet("Аналітика")
+except:
+    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
+    analytics_sheet.update("A1", [["Показник", "Значення"],
+                                   ["Усього замовлень", ""],
+                                   ["Загальна сума", ""],
+                                   ["Загальний прибуток", ""],
+                                   ["Найпопулярніший аромат", ""]])
+
+
+# Ініціалізація бота і диспетчера
+bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
+dp = Dispatcher(bot, storage=MemoryStorage())
+
+# Стан машини
+class OrderStates(StatesGroup):
+    name = State()
+    phone = State()
+    city = State()
+    delivery_type = State()
+    post_service = State()
+    address_or_post = State()
+    confirmation = State()
 
 # Тимчасове збереження кошика
 
@@ -116,7 +166,7 @@ async def back_to_main(callback: types.CallbackQuery):
 main_menu_buttons = [
     [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
     [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
-    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
     [InlineKeyboardButton("✒️Зв'язатися з нами", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
@@ -154,33 +204,7 @@ async def handle_category(callback: types.CallbackQuery):
 
         await bot.send_photo(callback.from_user.id, p['photo'], caption=f"*{p['name']}*\n💸 {p['price']} грн", reply_markup=buttons)
     await callback.answer()
-@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
-async def add_to_cart(callback: types.CallbackQuery):
-    # Callback data має формат "add_<назва парфуму>"
-    perfume_name = callback.data[4:]
-    user_id = callback.from_user.id
 
-    # Шукаймо дані про парфум у словнику perfume_catalog
-    perfume = None
-    for cat_list in perfume_catalog.values():
-        for p in cat_list:
-            if p['name'] == perfume_name:
-                perfume = p
-                break
-        if perfume:
-            break
-
-    if not perfume:
-        await callback.answer("❌ Товар не знайдено.", show_alert=True)
-        return
-
-    # Додаємо у простий кошик
-    user_carts.setdefault(user_id, []).append({
-        "name": perfume_name,
-        "price": perfume['price']
-    })
-
-    await callback.answer(f"✅ «{perfume_name}» додано до кошика!")
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await bot.send_message(callback.from_user.id, "Оберіть категорію парфумів:", reply_markup=catalog_menu)
@@ -247,9 +271,34 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 # === Відгуки з промокодом ===
+used_promo_users = set()
+PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
+
+class ReviewState(StatesGroup):
+    waiting_text = State()
+
+@dp.callback_query_handler(lambda c: c.data == "reviews")
+async def ask_for_review(callback: types.CallbackQuery):
+    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче та отримай промо на наступне замовлення!:")
+    await ReviewState.waiting_text.set()
+    await callback.answer()
+
+@dp.message_handler(state=ReviewState.waiting_text)
+async def receive_review(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    if user_id in used_promo_users:
+        await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
+    else:
+        if PROMO_CODES:
+            promo = PROMO_CODES.pop()
+        else:
+            promo = "PROMO10"
+        used_promo_users.add(user_id)
+        await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
+    await state.finish()
+
 
 # Блок: Акції та бонуси
-
 # Функція застосування знижок у кошику
 def apply_discounts(cart, user_id):
     total = sum(item['price'] for item in cart)
@@ -447,31 +496,105 @@ async def update_cart_message(message: types.Message, user_id: int):
     except Exception:
         await message.answer("Помилка оновлення кошика.")
 
-# Простий робочий кошик
-user_carts = {}  # {user_id: [ {"name": str, "price": int}, ... ]}
-
-@dp.callback_query_handler(lambda c: c.data == "show_cart")
-async def show_cart_simple(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def add_to_cart_callback(callback: types.CallbackQuery):
+    perfume_name = callback.data[4:]
     user_id = callback.from_user.id
+
+    if user_id not in user_carts:
+        user_carts[user_id] = []
+
+    cart = user_carts[user_id]
+
+    for item in cart:
+        if item['name'] == perfume_name:
+            item['quantity'] += 1
+            break
+    else:
+        cart.append({"name": perfume_name, "price": 200, "quantity": 1})
+
+    await callback.answer("✅ Товар додано в кошик")
+    await update_cart_message(callback.message, user_id)
+
+async def show_cart(message: types.Message, edit=False):
+    user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await callback.message.answer(
-            "🛒 Ваш кошик порожній.", reply_markup=main_menu
-        )
+        if edit:
+            await message.edit_text("🛒 Ваш кошик порожній.")
+        else:
+            await message.answer("🛒 Ваш кошик порожній.")
         return
 
-    total = sum(item['price'] for item in cart)
-    lines = [f"{i+1}. {item['name']} — {item['price']} грн" for i, item in enumerate(cart)]
-    text = "🛒 *Ваш кошик:*\n" + "\n".join(lines)
-    text += f"\n\n*Загалом:* {total} грн"
+    daily_discount_active = user_daily_discount_active.get(user_id, False)
+    total, discount = calculate_cart_total_and_discount(cart, daily_discount_active=daily_discount_active)
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout")],
-        [InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")],
-        [InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
-    ])
-    await callback.message.answer(text, reply_markup=keyboard)
-    await callback.answer()
+    text = "🛒 *Ваш кошик:*\n"
+    keyboard = InlineKeyboardMarkup(row_width=3)
+
+    for i, item in enumerate(cart):
+        text += f"\n{i+1}. *{escape_md(item['name'].capitalize())}* — {item['price']} грн × {item['quantity']}"
+        keyboard.row(
+            InlineKeyboardButton("➕", callback_data=f"inc_{i}"),
+            InlineKeyboardButton("➖", callback_data=f"dec_{i}"),
+            InlineKeyboardButton("❌", callback_data=f"del_{i}")
+        )
+    text += f"\n\n*Загалом:* {total} грн"
+    if discount > 0:
+        text += f"\n*Ваша знижка:* {discount} грн"
+
+    keyboard.row(
+        InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
+        InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog")
+    )
+
+    if edit:
+        await message.edit_text(text, reply_markup=keyboard, parse_mode="MarkdownV2")
+    else:
+        await message.answer(text, reply_markup=keyboard, parse_mode="MarkdownV2")
+@dp.callback_query_handler(lambda c: c.data.startswith("inc_"))
+async def increment_quantity(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        cart[idx]['quantity'] += 1
+        await callback.answer("➕ Кількість збільшена")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
+
+    await update_cart_message(callback.message, user_id)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("dec_"))
+async def decrement_quantity(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        if cart[idx]['quantity'] > 1:
+            cart[idx]['quantity'] -= 1
+            await callback.answer("➖ Кількість зменшена")
+        else:
+            cart.pop(idx)
+            await callback.answer("❌ Товар видалено з кошика")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
+
+    await update_cart_message(callback.message, user_id)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("del_"))
+async def delete_item(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
+    idx = int(callback.data[4:])
+    if 0 <= idx < len(cart):
+        removed = cart.pop(idx)
+        await callback.answer(f"❌ Видалено: {removed['name'].capitalize()}")
+    else:
+        await callback.answer("❗ Невірний товар", show_alert=True)
+
+    await update_cart_message(callback.message, user_id)
+
 # Обробник кнопки оформлення замовлення
 @dp.callback_query_handler(lambda c: c.data == "checkout")
 async def checkout_callback(callback: types.CallbackQuery):
@@ -758,109 +881,18 @@ if __name__ == '__main__':
 
 # (при необхідності умовні блоки promo_cond можна додати аналогічно)
 
-# === Повноцінна робота Кошика ===
-# Оголошення словників
-user_carts = {}  # {user_id: [ {"name": str, "price": int}, ... ]}
-user_discounts = {}
-
-# 1. Додавання в кошик
-@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
-async def add_to_cart(callback: types.CallbackQuery):
-    perfume_name = callback.data[4:]
-    user_id = callback.from_user.id
-    # Знаходимо товар у каталозі
-    perfume = None
-    for cat in perfume_catalog.values():
-        for p in cat:
-            if p['name'] == perfume_name:
-                perfume = p
-                break
-        if perfume: break
-    if not perfume:
-        await callback.answer("❌ Товар не знайдено.", show_alert=True)
-        return
-    # Додаємо до кошика
-    user_carts.setdefault(user_id, []).append({"name": perfume_name, "price": perfume['price']})
-    await callback.answer(f"✅ {perfume_name} додано до кошика!")
-
-# 2. Очищення кошика
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    user_carts[user_id] = []
-    await callback.answer("🧹 Кошик очищено.")
-    # Показуємо оновлений кошик
-    await show_cart(callback)
-
-# 3. Функція підрахунку з урахуванням акцій
-from collections import Counter
-
-def apply_discounts(cart):
-    discount = 0
-    details = []
-    # Акція 1: третій парфум зі знижкою 50%
-    if len(cart) >= 3:
-        sorted_cart = sorted(cart, key=lambda x: x['price'])
-        count3 = len(cart) // 3
-        for i in range(count3):
-            d = sorted_cart[i*3 + 2]['price'] * 0.5
-            discount += d
-        details.append(f"-50% на кожний 3-й (всього {count3}): -{int(discount)} грн")
-    # Акція 3: 1+1 зі знижкою 30%
-    cnt = Counter(item['name'] for item in cart)
-    for name, qty in cnt.items():
-        pairs = qty // 2
-        if pairs:
-            price = next(item['price'] for item in cart if item['name'] == name)
-            d = price * 0.3 * pairs
-            discount += d
-            details.append(f"-30% на {pairs} пар дуетів '{name}': -{int(d)} грн")
-    # Акція 4: пакет 4 за 680 грн
-    if len(cart) == 4:
-        total4 = sum(i['price'] for i in cart)
-        if total4 > 680:
-            d = total4 - 680
-            discount += d
-            details.append(f"Пакет 4 за 680: -{int(d)} грн")
-    # Акція 5: знижка 20% з 6-го
-    if len(cart) >= 6:
-        sorted_cart = sorted(cart, key=lambda x: x['price'])
-        extra = len(cart) - 5
-        d = sum(sorted_cart[5:][i]['price'] * 0.2 for i in range(extra))
-        discount += d
-        details.append(f"-20% на {extra} вид. після 5: -{int(d)} грн")
-    return int(discount), details
-
-# 4. Відображення кошика з акціями
-@dp.callback_query_handler(lambda c: c.data == "show_cart")
-async def show_cart(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    cart = user_carts.get(user_id, [])
-    if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=main_menu)
-        return
-    total = sum(item['price'] for item in cart)
-    discount, details = apply_discounts(cart)
-    final = total - discount
-    # Формуємо текст
-    lines = [f"{i+1}. {item['name']} — {item['price']} грн" 
-             for i, item in enumerate(cart)]
-    text = "🛒 *Ваш кошик:*" + "".join(lines)
-    text += f"Сума: {total} грн"    
-   if discount: text += f"Знижки:" + "".join(details) + f"До сплати: {final} грн"
-    else:
-        text += f"До сплати: {final} грн"
-    # Кнопки
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🧾 Оформити", callback_data="checkout")],
-        [InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")],
-        [InlineKeyboardButton("🏠 Меню", callback_data="main_menu")]
-    ])
-    await callback.message.answer(text, reply_markup=kb)
-    await callback.answer()
-
-
 # ======================= Приклади інтеграції при оформленні =======================
 # cart=user_carts[user_id]
 # cart_pr=apply_all_promotions(cart)
-# total = sum(i['price']
+# total = sum(i['price']*i['quantity'] for i in cart_pr)
+# qty = sum(i['quantity'] for i in cart_pr)
+# promo_applied = cart_pr!=cart
+# free = is_free_delivery(total, user_data[user_id].get('order_count',0), qty, promo_applied)
+
+# Решта вашого коду без змін: обробники /start, каталог, show_cart, checkout, save to sheet, etc.
+
+if __name__=='__main__':
+    loop=asyncio.get_event_loop()
+    loop.create_task(asyncio.sleep(0))
+    executor.start_polling(dp, skip_updates=True)
+
