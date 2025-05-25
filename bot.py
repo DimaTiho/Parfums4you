@@ -894,21 +894,10 @@ async def show_cart(callback: types.CallbackQuery):
     final = total - discount
     # Формуємо текст
     lines = [f"{i+1}. {item['name']} — {item['price']} грн" for i, item in enumerate(cart)]
-    text = "🛒 *Ваш кошик:*
-" + "
-".join(lines)
-    text += f"
-
-Сума: {total} грн"
-    if discount:
-        text += f"
-Знижки:
-" + "
-".join(details) + f"
-До сплати: {final} грн"
+    text = "🛒 *Ваш кошик:*" + "".join(lines)
+    text += f"Сума: {total} грн"    if discount: text += f"Знижки:" + "".join(details) + f"До сплати: {final} грн"
     else:
-        text += f"
-До сплати: {final} грн"
+        text += f"До сплати: {final} грн"
     # Кнопки
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("🧾 Оформити", callback_data="checkout")],
@@ -922,14 +911,4 @@ async def show_cart(callback: types.CallbackQuery):
 # ======================= Приклади інтеграції при оформленні =======================
 # cart=user_carts[user_id]
 # cart_pr=apply_all_promotions(cart)
-# total = sum(i['price']*i['quantity'] for i in cart_pr)
-# qty = sum(i['quantity'] for i in cart_pr)
-# promo_applied = cart_pr!=cart
-# free = is_free_delivery(total, user_data[user_id].get('order_count',0), qty, promo_applied)
-
-# Решта вашого коду без змін: обробники /start, каталог, show_cart, checkout, save to sheet, etc.
-
-if __name__=='__main__':
-    loop=asyncio.get_event_loop()
-    loop.create_task(asyncio.sleep(0))
-    executor.start_polling(dp, skip_updates=True)
+# total = sum(i['price']*
