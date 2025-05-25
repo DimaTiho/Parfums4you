@@ -384,7 +384,7 @@ async def clear_cart(callback: types.CallbackQuery):
     user_carts[callback.message.chat.id] = {}
     await callback.answer("Кошик очищено.")
     await callback.message.edit_caption("Ваш кошик порожній.", reply_markup=main_menu_kb())
-wait callback.message.edit_caption("Ваш кошик порожній.", reply_markup=main_menu_kb())
+    
 
 --- ОФОРМЛЕННЯ ЗАМОВЛЕННЯ ---
 @dp.callback_query_handler(lambda c: c.data == "order")
