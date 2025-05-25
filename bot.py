@@ -525,5 +525,6 @@ kb = InlineKeyboardMarkup()
 kb.add(InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"))
 kb.add(InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order"))
 
-await message.answer(text, parse_mode='MarkdownV2', reply_markup=kb)Щоб виправити помилку `KeyError: 'price'`, потрібно переконатися, що кожен елемент у `cart_items` (тобто кожен товар у кошику) містить ключ `'price'`. Помилка сталася в функції `calculate_cart_summary`, де очікується, що кожен товар має `item['price']`, але цей ключ відсутній.
+await message.answer(text, parse_mode='MarkdownV2', reply_markup=kb)
+# Щоб виправити помилку `KeyError: 'price'`, потрібно переконатися, що кожен елемент у `cart_items` (тобто кожен товар у кошику) містить ключ `'price'`. Помилка сталася в функції `calculate_cart_summary`, де очікується, що кожен товар має `item['price']`, але цей ключ відсутній.
 
