@@ -1,4 +1,4 @@
-import logging
+ import logging
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -54,56 +54,6 @@ user_carts = {}
 user_discounts = {}
 user_data = {}
 
-import logging
-import asyncio
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
-import random
-from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
-
-# Налаштування логування
-logging.basicConfig(level=logging.INFO)
-
-# Telegram токен
-BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
-GOOGLE_SHEET_NAME = 'Parfums'
-CREDENTIALS_FILE = 'credentials.json'
-# === Google Sheets ===
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
-client = gspread.authorize(creds)
-workbook = client.open(GOOGLE_SHEET_NAME)
-sheet = workbook.sheet1
-try:
-    analytics_sheet = workbook.worksheet("Аналітика")
-except:
-    analytics_sheet = workbook.add_worksheet(title="Аналітика", rows="10", cols="2")
-    analytics_sheet.update("A1", [["Показник", "Значення"],
-                                   ["Усього замовлень", ""],
-                                   ["Загальна сума", ""],
-                                   ["Загальний прибуток", ""],
-                                   ["Найпопулярніший аромат", ""]])
-
-
-# Ініціалізація бота і диспетчера
-bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
-dp = Dispatcher(bot, storage=MemoryStorage())
-
-# Стан машини
-class OrderStates(StatesGroup):
-    name = State()
-    phone = State()
-    city = State()
-    delivery_type = State()
-    post_service = State()
-    address_or_post = State()
-    confirmation = State()
 
 # Тимчасове збереження кошика
 
@@ -893,9 +843,11 @@ async def show_cart(callback: types.CallbackQuery):
     discount, details = apply_discounts(cart)
     final = total - discount
     # Формуємо текст
-    lines = [f"{i+1}. {item['name']} — {item['price']} грн" for i, item in enumerate(cart)]
+    lines = [f"{i+1}. {item['name']} — {item['price']} грн" 
+             for i, item in enumerate(cart)]
     text = "🛒 *Ваш кошик:*" + "".join(lines)
-    text += f"Сума: {total} грн"    if discount: text += f"Знижки:" + "".join(details) + f"До сплати: {final} грн"
+    text += f"Сума: {total} грн"    
+   if discount: text += f"Знижки:" + "".join(details) + f"До сплати: {final} грн"
     else:
         text += f"До сплати: {final} грн"
     # Кнопки
@@ -911,4 +863,4 @@ async def show_cart(callback: types.CallbackQuery):
 # ======================= Приклади інтеграції при оформленні =======================
 # cart=user_carts[user_id]
 # cart_pr=apply_all_promotions(cart)
-# total = sum(i['price']*
+# total = sum(i['price']
