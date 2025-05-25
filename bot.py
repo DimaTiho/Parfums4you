@@ -509,8 +509,8 @@ if parfum:
             'name': parfum['name'],
             'price': parfum['price']
         })
-  for i, item in enumerate(cart_items):
-    if item['id'] == DISCOUNT_DAY_ITEM['id']:
+    for i, item in enumerate(cart_items):
+        if item['id'] == DISCOUNT_DAY_ITEM['id']:
         cart_items[i]['discount_day'] = True
 
 updated_items, total_discount, total_price = calculate_cart_summary(cart_items)
