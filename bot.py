@@ -473,58 +473,59 @@ async def confirm_order(message: types.Message, state: FSMContext):
         await message.answer("Ваш кошик порожній, замовлення скасовано.")
         await state.finish()
         return
-    # Подальша логіка обробки підтвердження замовлення...
 
-  
-# Підготувати текст підтвердження
-text = (
-    f"Підтвердіть ваше замовлення:\n\n"
-    f"Ім'я: {escape_md(data['name'], version=2)}\n"
-    f"Телефон: {escape_md(data['phone'], version=2)}\n"
-    f"Місто: {escape_md(data['city'], version=2)}\n"
-    f"Тип доставки: {escape_md('Адресна доставка' if data['delivery_type']=='delivery_address' else 'Доставка у відділення', version=2)}\n"
-)
-if data['delivery_type'] == 'delivery_address':
-    text += f"Адреса: {escape_md(data.get('address',''), version=2)}\n"
-else:
-    service_name = "Нова Пошта" if data.get('post_service') == "post_np" else "Укрпошта"
-    text += f"Служба доставки: {service_name}\n"
-    text += f"Відділення/адреса: {escape_md(data.get('post_address',''), version=2)}\n"
+    # Підготувати текст підтвердження
+    text = (
+        f"Підтвердіть ваше замовлення:\n\n"
+        f"Ім'я: {escape_md(data['name'], version=2)}\n"
+        f"Телефон: {escape_md(data['phone'], version=2)}\n"
+        f"Місто: {escape_md(data['city'], version=2)}\n"
+        f"Тип доставки: {escape_md('Адресна доставка' if data['delivery_type']=='delivery_address' else 'Доставка у відділення', version=2)}\n"
+    )
+    if data['delivery_type'] == 'delivery_address':
+        text += f"Адреса: {escape_md(data.get('address',''), version=2)}\n"
+    else:
+        service_name = "Нова Пошта" if data.get('post_service') == "post_np" else "Укрпошта"
+        text += f"Служба доставки: {service_name}\n"
+        text += f"Відділення/адреса: {escape_md(data.get('post_address',''), version=2)}\n"
 
-# Список товарів і підсумок
-cart_items = []
-for parfum_id, qty in cart.items():
-    parfum = None
-    for cat_parfums in PARFUMS.values():
-        for p in cat_parfums:
-            if p['id'] == parfum_id:
-                parfum = p
+    # Формуємо список товарів із цінами для калькуляції
+    cart_items = []
+    for parfum_id, qty in cart.items():
+        parfum = None
+        for cat_parfums in PARFUMS.values():
+            for p in cat_parfums:
+                if p['id'] == parfum_id:
+                    parfum = p
+                    break
+            if parfum:
                 break
         if parfum:
-           break
-if parfum:
-    for _ in range(qty):
-        cart_items.append({
-            'id': parfum['id'],
-            'name': parfum['name'],
-            'price': parfum['price']
-        })
+            for _ in range(qty):
+                cart_items.append({
+                    'id': parfum['id'],
+                    'name': parfum['name'],
+                    'price': parfum['price']
+                })
+
+    # Позначаємо "Знижка дня"
     for i, item in enumerate(cart_items):
         if item['id'] == DISCOUNT_DAY_ITEM['id']:
             cart_items[i]['discount_day'] = True
 
-updated_items, total_discount, total_price = calculate_cart_summary(cart_items)
+    updated_items, total_discount, total_price = calculate_cart_summary(cart_items)
 
-for item in updated_items:
-    text += f"\n- {escape_md(item['name'], version=2)} — {item['final_price']:.2f} грн"
+    for item in updated_items:
+        text += f"\n- {escape_md(item['name'], version=2)} — {item['final_price']:.2f} грн"
 
-text += f"\n\nЗагальна знижка: {total_discount:.2f} грн"
-text += f"\nДо оплати: {total_price:.2f} грн"
+    text += f"\n\nЗагальна знижка: {total_discount:.2f} грн"
+    text += f"\nДо оплати: {total_price:.2f} грн"
 
-kb = InlineKeyboardMarkup()
-kb.add(InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"))
-kb.add(InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order"))
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"))
+    kb.add(InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order"))
 
-await message.answer(text, parse_mode='MarkdownV2', reply_markup=kb)
+    await message.answer(text, parse_mode='MarkdownV2', reply_markup=kb)
+
 # Щоб виправити помилку `KeyError: 'price'`, потрібно переконатися, що кожен елемент у `cart_items` (тобто кожен товар у кошику) містить ключ `'price'`. Помилка сталася в функції `calculate_cart_summary`, де очікується, що кожен товар має `item['price']`, але цей ключ відсутній.
 
