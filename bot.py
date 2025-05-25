@@ -492,7 +492,7 @@ def calculate_cart_total_and_discount(cart):
 
 async def update_cart_message(message: types.Message, user_id: int):
     try:
-        await show_cart(message)
+        await show_cart(message, edit=True)
     except Exception:
         await message.answer("Помилка оновлення кошика.")
 
@@ -516,14 +516,18 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     await callback.answer("✅ Товар додано в кошик")
     await update_cart_message(callback.message, user_id)
 
-async def show_cart(message: types.Message):
+async def show_cart(message: types.Message, edit=False):
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await message.edit_text("🛒 Ваш кошик порожній.")
+        if edit:
+            await message.edit_text("🛒 Ваш кошик порожній.")
+        else:
+            await message.answer("🛒 Ваш кошик порожній.")
         return
 
-    total, discount = calculate_cart_total_and_discount(cart)
+    daily_discount_active = user_daily_discount_active.get(user_id, False)
+    total, discount = calculate_cart_total_and_discount(cart, daily_discount_active=daily_discount_active)
 
     text = "🛒 *Ваш кошик:*\n"
     keyboard = InlineKeyboardMarkup(row_width=3)
@@ -535,21 +539,19 @@ async def show_cart(message: types.Message):
             InlineKeyboardButton("➖", callback_data=f"dec_{i}"),
             InlineKeyboardButton("❌", callback_data=f"del_{i}")
         )
-
-    text += f"\n\n*Загалом:* {total:.2f} грн"
+    text += f"\n\n*Загалом:* {total} грн"
     if discount > 0:
-        text += f"\n*Ваша знижка:* {discount:.2f} грн"
+        text += f"\n*Ваша знижка:* {discount} грн"
 
     keyboard.row(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
         InlineKeyboardButton("🔙 Повернутися в каталог", callback_data="catalog")
     )
 
-    try:
+    if edit:
         await message.edit_text(text, reply_markup=keyboard, parse_mode="MarkdownV2")
-    except:
+    else:
         await message.answer(text, reply_markup=keyboard, parse_mode="MarkdownV2")
-
 @dp.callback_query_handler(lambda c: c.data.startswith("inc_"))
 async def increment_quantity(callback: types.CallbackQuery):
     user_id = callback.from_user.id
