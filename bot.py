@@ -12,12 +12,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import asyncio
 
 # ====== Налаштування ======
-API_TOKEN = 'YOUR_BOT_TOKEN_HERE'
+API_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
 
 # Google Sheets налаштування
-GS_CREDENTIALS_FILE = 'path_to_google_credentials.json'
-GS_SPREADSHEET_NAME = 'YourGoogleSheetName'
-GS_WORKSHEET_NAME = 'Orders'
+GS_CREDENTIALS_FILE = 'credentials.json'
+GS_SPREADSHEET_NAME = 'Parfums'
+GS_WORKSHEET_NAME = 'Parfums'
 
 # ====== Логування ======
 logging.basicConfig(level=logging.INFO)
