@@ -204,7 +204,33 @@ async def handle_category(callback: types.CallbackQuery):
 
         await bot.send_photo(callback.from_user.id, p['photo'], caption=f"*{p['name']}*\n💸 {p['price']} грн", reply_markup=buttons)
     await callback.answer()
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def add_to_cart(callback: types.CallbackQuery):
+    # Callback data має формат "add_<назва парфуму>"
+    perfume_name = callback.data[4:]
+    user_id = callback.from_user.id
 
+    # Шукаймо дані про парфум у словнику perfume_catalog
+    perfume = None
+    for cat_list in perfume_catalog.values():
+        for p in cat_list:
+            if p['name'] == perfume_name:
+                perfume = p
+                break
+        if perfume:
+            break
+
+    if not perfume:
+        await callback.answer("❌ Товар не знайдено.", show_alert=True)
+        return
+
+    # Додаємо у простий кошик
+    user_carts.setdefault(user_id, []).append({
+        "name": perfume_name,
+        "price": perfume['price']
+    })
+
+    await callback.answer(f"✅ «{perfume_name}» додано до кошика!")
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await bot.send_message(callback.from_user.id, "Оберіть категорію парфумів:", reply_markup=catalog_menu)
