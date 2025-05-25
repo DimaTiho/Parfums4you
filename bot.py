@@ -466,6 +466,30 @@ from aiogram.utils.markdown import escape_md
 
 user_carts = {}
 
+# --- Функція для підрахунку суми з урахуванням акцій ---
+def calculate_cart_total_and_discount(cart):
+    total_quantity = sum(item['quantity'] for item in cart)
+    prices_list = []
+    total = 0
+    for item in cart:
+        total += item['price'] * item['quantity']
+        prices_list.extend([item['price']] * item['quantity'])
+    prices_list.sort()
+    
+    discount = 0
+    # Приклад логіки: знижка 30% на кожен третій товар (або на найдешевший серед кожних трьох)
+    # При цьому Знижка дня не сумується з іншими акціями, перевірку тут можна додати, наприклад:
+    other_promos_active = False  # тут вставити перевірку, чи активна "Знижка дня"
+    
+    if not other_promos_active and total_quantity >= 3:
+        thirds = total_quantity // 3
+        for i in range(thirds):
+            # Знижка на кожен третій найдешевший товар
+            discount += prices_list[i*3] * 0.3
+    
+    final_total = total - discount
+    return final_total, discount
+
 async def update_cart_message(message: types.Message, user_id: int):
     try:
         await show_cart(message)
@@ -499,6 +523,8 @@ async def show_cart(message: types.Message):
         await message.edit_text("🛒 Ваш кошик порожній.")
         return
 
+    total, discount = calculate_cart_total_and_discount(cart)
+
     text = "🛒 *Ваш кошик:*\n"
     keyboard = InlineKeyboardMarkup(row_width=3)
 
@@ -509,8 +535,10 @@ async def show_cart(message: types.Message):
             InlineKeyboardButton("➖", callback_data=f"dec_{i}"),
             InlineKeyboardButton("❌", callback_data=f"del_{i}")
         )
-    total = sum(item['price'] * item['quantity'] for item in cart)
-    text += f"\n*Загалом:* {total} грн"
+
+    text += f"\n\n*Загалом:* {total:.2f} грн"
+    if discount > 0:
+        text += f"\n*Ваша знижка:* {discount:.2f} грн"
 
     keyboard.row(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
