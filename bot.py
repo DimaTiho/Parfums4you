@@ -51,7 +51,7 @@ class OrderStates(StatesGroup):
     confirmation = State()
   
 user_carts = {}  # Словник користувачів з їхніми кошиками
-
+user_discounts = {} 
 @dp.message_handler(lambda message: message.text == "Як замовити" or message.text.lower() == "/how_to_order")
 async def how_to_order(message: types.Message):
     instructions = (
@@ -583,6 +583,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     else:
         address_or_post = message.text
 
+    await state.update_data(address_or_post=address_or_post)
     await OrderStates.next()
     # Формування та відображення замовлення
     data = await state.get_data()
