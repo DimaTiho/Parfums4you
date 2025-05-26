@@ -613,19 +613,20 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
-async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
-    if callback.data == "confirm_order":
-        data = await state.get_data()
+async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    user_id = callback.from_user.id
 
+    if callback.data == "confirm_order":
+        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
-        name = data['name']
-        phone = data['phone']
-        city = data['city']
-        delivery_type = data.get('post_service', 'Адреса') if data['delivery_type'] == 'delivery_post' else 'Адреса'
+        name = data.get('name', '-')
+        phone = data.get('phone', '-')
+        city = data.get('city', '-')
+        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
         address = data.get('address_or_post', '-')
-        user_id = callback.from_user.id
 
         cart_items = user_carts.get(user_id, [])
         cart_items = apply_third_item_discount(cart_items)
@@ -651,17 +652,16 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
 
         await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
-    else:
+
+    elif callback.data == "cancel_order":
+        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
         await callback.message.answer("❌ Замовлення скасовано.")
+
+    else:
+        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
+
     await state.finish()
     await callback.answer()
-
-
-
-@dp.callback_query_handler(lambda c: c.data == "cancel_order", state=OrderStates.confirmation)
-async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
-    await bot.send_message(callback.from_user.id, "❌ Замовлення скасовано.")
-    await state.finish()
 
 
 @dp.message_handler(commands=["start"])
@@ -707,7 +707,7 @@ async def track_pending_orders(message: types.Message):
 
             if chat_id.isdigit() and ttn and not status:
                 await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                sheet.update_cell(i, 13, "✅ надіслано")
+                sheet.update_cell(i, 13, "Надіслано")
                 await asyncio.sleep(1)
 
         except Exception as e:
