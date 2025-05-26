@@ -390,7 +390,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
         )
         await callback.answer()
         return
-    day_discount_percent = 15
+    day_discount_percent = 0
     result = calculate_cart(cart, day_discount_percent=0)  # Задай day_discount_percent за потребою
 
     cart_summary = result['cart']
@@ -424,6 +424,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
         )
     buttons.add(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
+        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
         InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
     )
 
