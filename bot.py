@@ -49,18 +49,6 @@ class OrderStates(StatesGroup):
     address_or_post = State()
     confirmation = State()
 
-# Тимчасове збереження кошика
-
-# === Акція: 3-й парфум зі знижкою 50% ===
-def apply_third_item_discount(cart):
-    if len(cart) >= 3:
-        sorted_cart = sorted(cart, key=lambda x: x['price'])
-        sorted_cart[2]['price'] = round(sorted_cart[2]['price'] * 0.5, 2)
-    return cart
-user_carts = {}
-user_discounts = {}
-user_data = {}
-
 @dp.message_handler(lambda message: message.text == "Як замовити" or message.text.lower() == "/how_to_order")
 async def how_to_order(message: types.Message):
     instructions = (
@@ -124,16 +112,16 @@ catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
 
 perfume_catalog = {
     "cat_women": [
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Dior J'adore", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."}
+        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Dior J'adore", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1}
     ],
     "cat_unisex": [
-        {"name": "Tom Ford Tobacco Vanille", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Byredo Gypsy Water", "price": 200, "photo": ""https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.jpg"}
+        {"name": "Tom Ford Tobacco Vanille", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Byredo Gypsy Water", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.jpg","quantity": 1}
     ],
     "cat_top": [
-        {"name": "Creed Aventus", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Maison Francis Kurkdjian Baccarat Rouge", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."}
+        {"name": "Creed Aventus", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Maison Francis Kurkdjian Baccarat Rouge", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1}
     ]
 }
 
@@ -243,33 +231,38 @@ async def receive_review(message: types.Message, state: FSMContext):
 
 
 # Блок: Акції та бонуси
-@dp.message_handler(lambda message: message.text == "Акції та бонуси")
-async def promotions_handler(message: types.Message):
-    await promotions_callback(message)
-
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def promotions_callback(callback_or_message):
     promo_text = (
-        "🎉 *Наявні акції:*"
-        "1️⃣ *3-й парфум зі знижкою -50%*"
-        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%"
-        "2️⃣ *Безкоштовна доставка від 500 грн*"
-        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!"
-        "3️⃣ *Знижка для подруг — 10% кожній!*"
-        "Запросіть подругу — обидві отримаєте знижку після замовлення."
-        "4️⃣ *Набір зі знижкою -15%*"
-        "При покупці 3+ парфумів — знижка 15% на кожен."
+        "🎉 *Наявні акції:*\n"
+        "1️⃣ *3-й парфум зі знижкою -50%*\n"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n\n"
+        "2️⃣ *Безкоштовна доставка від 600 грн*\n"
+        "Оформіть замовлення на суму від 600 грн (без доставки) — ми доставимо безкоштовно!\n\n"
+        "3️⃣ *1+1 зі знижкою 30% на другий товар*\n"
+        "Купуйте один парфум, другий отримаєте зі знижкою 30%\n\n"
+        "4️⃣ *Пакетна пропозиція: 4 парфуми за 680 грн*\n"
+        "Акція діє при замовленні рівно 4 одиниць.\n\n"
+        "5️⃣ *Знижка 20% від 5 одиниць*\n"
+        "При замовленні від 5 одиниць — знижка 20% на кожен наступний товар.\n\n"
+        "6️⃣ *Безкоштовна доставка на перше замовлення від 2 шт*\n"
+        "Акція не сумується з іншими знижками.\n\n"
+        "7️⃣ *Розіграш серед нових покупців*\n"
+        "Приймайте участь та вигравайте призи!\n"
     )
 
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
+        
         InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови з подругою", callback_data="promo_cond_3"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови набору зі знижкою", callback_data="promo_cond_4"),
+        
+        InlineKeyboardButton("📄 Умови 1+1 зі знижкою", callback_data="promo_cond_3"),
+        
+        InlineKeyboardButton("📄 Умови пакетної пропозиції", callback_data="promo_cond_4"),
+        InlineKeyboardButton("📄 Умови знижки від 5 одиниць", callback_data="promo_cond_5"),
+        
+        InlineKeyboardButton("📄 Умови безкоштовної доставки на перше замовлення", callback_data="promo_cond_6"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
     )
@@ -283,15 +276,12 @@ async def promotions_callback(callback_or_message):
 @dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
 async def promo_conditions(call: types.CallbackQuery):
     conditions = {
-        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*"
-"Купіть будь-які 2 парфуми та отримайте третій зі знижкою 50%."
-"Знижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
-        "promo_cond_2": "🚚 *Безкоштовна доставка від 500 грн*"
-"Загальна сума без урахування доставки має перевищувати 500 грн.",
-        "promo_cond_3": "👭 *Знижка для подруг — 10% кожній!*"
-"Надішліть посилання подрузі. Обидві отримаєте знижку після замовлення.",
-        "promo_cond_4": "🎁 *Набір зі знижкою -15%*"
-"При купівлі 3 або більше парфумів — знижка 15% на кожен."
+        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*\nКупіть будь-які 2 парфуми та отримайте третій зі знижкою 50%.\nЗнижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
+        "promo_cond_2": "🚚 *Безкоштовна доставка від 600 грн*\nЗагальна сума без урахування доставки має перевищувати 600 грн.",
+        "promo_cond_3": "🛍 *1+1 зі знижкою 30%*\nКупуйте один парфум, другий отримаєте зі знижкою 30%.",
+        "promo_cond_4": "🎁 *Пакетна пропозиція: 4 парфуми за 680 грн*\nАкція діє при замовленні рівно 4 одиниць.",
+        "promo_cond_5": "🔟 *Знижка 20% від 5 одиниць*\nПри замовленні від 5 одиниць — знижка 20% на кожен наступний товар.",
+        "promo_cond_6": "🎉 *Безкоштовна доставка на перше замовлення від 2 шт*\nАкція не сумується з іншими знижками."
     }
     await call.message.answer(conditions[call.data])
     await call.answer()
@@ -321,44 +311,44 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
 async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
-    if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
-        return
+if not cart:
+    await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
+    return
 
-    cart = apply_third_item_discount(cart)
-    counted = {}
-    total = 0
-    for item in cart:
-        name = item['name']
-        if name not in counted:
-            counted[name] = {'count': 1, 'price': item['price']}
-        else:
-            counted[name]['count'] += 1
-            counted[name]['price'] += item['price']
-        total += item['price']
+# Викликаємо calculate_cart з усіма знижками
+result = calculate_cart(cart, day_discount_percent=0)  # day_discount_percent можна динамічно задавати
 
-    text = "*Ваш кошик:*"
-    i = 1
-    for name, data in counted.items():
-        text += f"{i}. {name} — {data['count']} шт. x {round(data['price'] / data['count'])} грн = {data['price']} грн"
-        i += 1
+cart = result['cart']
+total_price = result['total_price']
+free_shipping_flag = result['free_shipping']
+day_discount_amount = result['day_discount_amount']
 
-    discount = user_discounts.get(user_id, 0)
-    final_price = total - discount
-    text += f"💵 Сума без знижок: {total} грн"
-    if discount:
-        text += f"🎁 Знижка: {discount} грн"
-        text += f"✅ До сплати: {final_price} грн"
+# Підрахунок кількості та формування тексту
+counted = {}
+for item in cart:
+    name = item['name']
+    if name not in counted:
+        counted[name] = {'count': item['quantity'], 'price': (item['price'] - item.get('discount', 0)) * item['quantity']}
+    else:
+        counted[name]['count'] += item['quantity']
+        counted[name]['price'] += (item['price'] - item.get('discount', 0)) * item['quantity']
 
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
-        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart"),
-        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
-    )
-    await callback.message.answer(text, reply_markup=keyboard)
-    await callback.answer()
+text = "*Ваш кошик:*\n"
+i = 1
+for name, data in counted.items():
+    unit_price = round(data['price'] / data['count'])
+    text += f"{i}. {name} — {data['count']} шт. x {unit_price} грн = {round(data['price'])} грн\n"
+    i += 1
+
+text += f"💵 Сума без знижок: {sum(item['price']*item['quantity'] for item in cart)} грн\n"
+if day_discount_amount > 0:
+    text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
+text += f"🎁 Загальна знижка: {round(sum(item.get('discount',0)*item['quantity'] for item in cart))} грн\n"
+text += f"✅ До сплати: {round(total_price)} грн\n"
+if free_shipping_flag:
+    text += "🚚 У вас безкоштовна доставка!\n"
+
 
 @dp.callback_query_handler(lambda c: c.data.startswith("increase_"))
 async def increase_item_quantity(callback: types.CallbackQuery):
@@ -700,3 +690,4 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
+
