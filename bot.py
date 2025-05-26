@@ -273,7 +273,7 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     else:
         # Якщо товару нема — додаємо з quantity=1
         user_carts[user_id].append({"name": perfume_name, "price": 200,"quantity": 1})
-
+        print(f"User {callback.from_user.id} clicked show_cart")
     buttons = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton("🛒 Переглянути кошик", callback_data="show_cart"),
