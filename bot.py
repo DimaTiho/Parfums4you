@@ -203,8 +203,8 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     if not perfume:
         await callback.answer("Помилка: товар не знайдено.")
         return
-    discounted_price = int(perfume["price"] * 0.75)
-    user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
+    discounted_price = int(perfume["price"] * 0.85)
+    user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price, "quantity": 1})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 
 # Блок: Акції та бонуси
