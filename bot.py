@@ -202,33 +202,6 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     discounted_price = int(perfume["price"] * 0.75)
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
-# === Відгуки з промокодом ===
-used_promo_users = set()
-PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
-
-class ReviewState(StatesGroup):
-    waiting_text = State()
-
-@dp.callback_query_handler(lambda c: c.data == "reviews")
-async def ask_for_review(callback: types.CallbackQuery):
-    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче:")
-    await ReviewState.waiting_text.set()
-    await callback.answer()
-
-@dp.message_handler(state=ReviewState.waiting_text)
-async def receive_review(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    if user_id in used_promo_users:
-        await message.answer("Дякуємо за відгук! Ви вже отримали промокод.")
-    else:
-        if PROMO_CODES:
-            promo = PROMO_CODES.pop()
-        else:
-            promo = "PROMO10"
-        used_promo_users.add(user_id)
-        await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
-    await state.finish()
-
 
 # Блок: Акції та бонуси
 @dp.callback_query_handler(lambda c: c.data == "promotions")
@@ -307,48 +280,126 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
     await callback.answer()
 
+user_carts = {}  # Словник користувачів з їхніми кошиками
+
+def calculate_cart(cart, day_discount_percent=0):
+    # Підрахунок кількості кожного товару
+    counts = Counter(item['name'] for item in cart)
+    prices = {item['name']: item['price'] for item in cart}
+
+    cart_summary = []
+    for name, count in counts.items():
+        cart_summary.append({
+            'name': name,
+            'quantity': count,
+            'price': prices[name]
+        })
+
+    total_price = sum(item['price'] * item['quantity'] for item in cart_summary)
+
+    # Акції:
+
+    # 1. Знижка на 3-й товар -50% на найменший третій товар
+    discount_3rd = 0
+    if sum(counts.values()) >= 3:
+        all_prices = []
+        for item in cart_summary:
+            all_prices.extend([item['price']] * item['quantity'])
+        all_prices.sort()
+        discount_3rd = all_prices[2] * 0.5
+
+    # 2. Пакетна пропозиція: 4 парфуми за 680 грн
+    package_discount = 0
+    if sum(counts.values()) == 4:
+        if total_price > 680:
+            package_discount = total_price - 680
+
+    # 3. Знижка 20% від 5 одиниць
+    discount_20_percent = 0
+    if sum(counts.values()) >= 5:
+        discount_20_percent = total_price * 0.2
+
+    # 4. 1+1 зі знижкою 30% на другий товар
+    discount_bogo = 0
+    for item in cart_summary:
+        pairs = item['quantity'] // 2
+        discount_bogo += pairs * item['price'] * 0.3
+
+    # 5. Безкоштовна доставка від 600 грн (після знижок)
+    max_discount = max(discount_3rd, package_discount, discount_20_percent, discount_bogo)
+    price_after_discount = total_price - max_discount
+    free_shipping = price_after_discount >= 600
+
+    # 6. Знижка дня (окремо)
+    day_discount_amount = price_after_discount * (day_discount_percent / 100)
+
+    # Фінальна сума з урахуванням знижок та знижки дня
+    total_discount = max_discount + day_discount_amount
+    final_price = total_price - total_discount
+
+    # Додаємо поле discount (поки 0) для кожного товару (можна деталізувати, якщо потрібно)
+    for item in cart_summary:
+        item['discount'] = 0
+
+    return {
+        'cart': cart_summary,
+        'total_price': final_price,
+        'total_discount': total_discount,
+        'free_shipping': free_shipping,
+        'day_discount_amount': day_discount_amount
+    }
+
 @dp.callback_query_handler(lambda c: c.data == "show_cart")
 async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
+        await callback.message.answer(
+            "🛒 Ваш кошик порожній.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]
+            )
+        )
         return
 
-# Викликаємо calculate_cart з усіма знижками
-result = calculate_cart(cart, day_discount_percent=0)  # day_discount_percent можна динамічно задавати
+    result = calculate_cart(cart, day_discount_percent=0)  # Задай day_discount_percent за потребою
 
-cart = result['cart']
-total_price = result['total_price']
-free_shipping_flag = result['free_shipping']
-day_discount_amount = result['day_discount_amount']
+    cart_summary = result['cart']
+    total_price = result['total_price']
+    free_shipping_flag = result['free_shipping']
+    day_discount_amount = result['day_discount_amount']
+    total_discount = result['total_discount']
 
-# Підрахунок кількості та формування тексту
-counted = {}
-for item in cart:
-    name = item['name']
-    if name not in counted:
-        counted[name] = {'count': item['quantity'], 'price': (item['price'] - item.get('discount', 0)) * item['quantity']}
-    else:
-        counted[name]['count'] += item['quantity']
-        counted[name]['price'] += (item['price'] - item.get('discount', 0)) * item['quantity']
+    text = "*Ваш кошик:*\n"
+    i = 1
+    for item in cart_summary:
+        unit_price = item['price']
+        count = item['quantity']
+        line_price = unit_price * count
+        text += f"{i}. {item['name']} — {count} шт. x {unit_price} грн = {line_price} грн\n"
+        i += 1
 
-text = "*Ваш кошик:*\n"
-i = 1
-for name, data in counted.items():
-    unit_price = round(data['price'] / data['count'])
-    text += f"{i}. {name} — {data['count']} шт. x {unit_price} грн = {round(data['price'])} грн\n"
-    i += 1
+    text += f"\n💵 Сума без знижок: {sum(item['price'] * item['quantity'] for item in cart_summary)} грн\n"
+    if day_discount_amount > 0:
+        text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
+    text += f"🎁 Загальна знижка: {round(total_discount)} грн\n"
+    text += f"✅ До сплати: {round(total_price)} грн\n"
+    if free_shipping_flag:
+        text += "🚚 У вас безкоштовна доставка!\n"
 
-text += f"💵 Сума без знижок: {sum(item['price']*item['quantity'] for item in cart)} грн\n"
-if day_discount_amount > 0:
-    text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
-text += f"🎁 Загальна знижка: {round(sum(item.get('discount',0)*item['quantity'] for item in cart))} грн\n"
-text += f"✅ До сплати: {round(total_price)} грн\n"
-if free_shipping_flag:
-    text += "🚚 У вас безкоштовна доставка!\n"
+    buttons = InlineKeyboardMarkup(row_width=2)
+    for item in cart_summary:
+        buttons.add(
+            InlineKeyboardButton(f"➕ {item['name']}", callback_data=f"increase_{item['name']}"),
+            InlineKeyboardButton(f"➖ {item['name']}", callback_data=f"decrease_{item['name']}")
+        )
+    buttons.add(
+        InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
+        InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
+    )
 
+    await callback.message.answer(text, reply_markup=buttons)
+    await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("increase_"))
 async def increase_item_quantity(callback: types.CallbackQuery):
