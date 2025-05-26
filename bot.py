@@ -8,6 +8,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+from some_module import apply_third_item_discount
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -405,9 +406,15 @@ async def show_cart_callback(callback: types.CallbackQuery):
 async def increase_item_quantity(callback: types.CallbackQuery):
     name = callback.data.replace("increase_", "")
     user_id = callback.from_user.id
-    user_carts.setdefault(user_id, []).append({"name": name, "price": 200})
+    cart = user_carts.setdefault(user_id, [])
+    for item in cart:
+        if item["name"] == name:
+            item["quantity"] += 1
+            break
+    else:
+        cart.append({"name": name, "price": 200, "quantity": 1})  # або дізнайся справжню ціну
     await show_cart_callback(callback)
-
+  
 @dp.callback_query_handler(lambda c: c.data.startswith("decrease_"))
 async def decrease_item_quantity(callback: types.CallbackQuery):
     name = callback.data.replace("decrease_", "")
@@ -415,7 +422,9 @@ async def decrease_item_quantity(callback: types.CallbackQuery):
     cart = user_carts.get(user_id, [])
     for i, item in enumerate(cart):
         if item["name"] == name:
-            cart.pop(i)
+            item["quantity"] -= 1
+            if item["quantity"] <= 0:
+                cart.pop(i)
             break
     await show_cart_callback(callback)
 
@@ -741,4 +750,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
+
 
