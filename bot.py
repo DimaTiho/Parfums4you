@@ -1,531 +1,427 @@
 import logging
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher import FSMContext
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
+from aiogram.utils import executor
 from aiogram.utils.markdown import escape_md
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from datetime import datetime
 
 BOT_TOKEN = '7511346484:AAEm89gjBctt55ge8yEqrfHrxlJ-yS4d56U'
-GOOGLE_SHEET_NAME = 'Parfums'
-CREDENTIALS_FILE = 'credentials.json'
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+dp = Dispatcher(bot)
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-service = build('sheets', 'v4', credentials=creds)
-sheet = service.spreadsheets()
-
-# --- CONSTANTS ---
-
-PARFUM_PRICE = 200
-
-# Заглушки парфумів (назва + фото URL)
-PARFUMS = {
-    'Жіночі': [
-        {'id': 'w1', 'name': 'Романтична ніч', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'w2', 'name': 'Весняний вітер', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'w3', 'name': 'Таємничий сад', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'w4', 'name': 'Легка хмара', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+# Дані парфумів (заглушки назви і фото)
+perfumes = {
+    'female': [
+        {
+            'id': 'f1',
+            'name': 'Парфум Жіночий 1',
+            'photo': 'https://via.placeholder.com/150?text=Жіночий+1',
+            'price': 200
+        },
+        {
+            'id': 'f2',
+            'name': 'Парфум Жіночий 2',
+            'photo': 'https://via.placeholder.com/150?text=Жіночий+2',
+            'price': 200
+        },
     ],
-    'Унісекс': [
-        {'id': 'u1', 'name': 'Світло дня', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'u2', 'name': 'Міський ритм', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'u3', 'name': 'Північна зоря', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 'u4', 'name': 'Лісова прохолода', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
+    'unisex': [
+        {
+            'id': 'u1',
+            'name': 'Парфум Унісекс 1',
+            'photo': 'https://via.placeholder.com/150?text=Унісекс+1',
+            'price': 200
+        },
+        {
+            'id': 'u2',
+            'name': 'Парфум Унісекс 2',
+            'photo': 'https://via.placeholder.com/150?text=Унісекс+2',
+            'price': 200
+        },
     ],
-    'ТОП ПРОДАЖ': [
-        {'id': 't1', 'name': 'Вогняний спалах', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 't2', 'name': 'Свіжий подих', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 't3', 'name': 'Нічна мелодія', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-        {'id': 't4', 'name': 'Сонячний промінь', 'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA'},
-    ],
+    'top': [
+        {
+            'id': 't1',
+            'name': 'ТОП Парфум 1',
+            'photo': 'https://via.placeholder.com/150?text=ТОП+1',
+            'price': 200
+        },
+        {
+            'id': 't2',
+            'name': 'ТОП Парфум 2',
+            'photo': 'https://via.placeholder.com/150?text=ТОП+2',
+            'price': 200
+        },
+    ]
 }
 
-# Знижка дня (приклад) - фіксована парфума
-DISCOUNT_DAY_ITEM = {
-    'id': 'w1',
-    'name': 'Романтична ніч',
-    'old_price': 200,
-    'new_price': 170,
-    'photo': 'https://i.imgur.com/OaY3nI1.jpg',
-}
-
-# Стан для оформлення замовлення
-class OrderStates(StatesGroup):
-    waiting_for_name = State()
-    waiting_for_phone = State()
-    waiting_for_city = State()
-    waiting_for_delivery_type = State()
-    waiting_for_address_or_post_service = State()
-    confirmation = State()
-
-# Зберігання кошиків та дискаунтів в пам'яті (пам'ятай, це вразливе для перезапусків!)
+# Користувацькі кошики: user_id -> list товарів
 user_carts = {}
-user_discounts = {}
 
-# --- ФУНКЦІЇ ЛОГІКИ АКЦІЙ ---
-
-def apply_discounts(cart_items):
-    """
-    Застосувати всі акції, крім "Знижка дня" на окремий парфум.
-    Повернути tuple (список оновлених товарів з цінами, сума скидки).
-    Логіка акцій (1-6):
-    Акція 1: 3-й парфум зі знижкою 50% на найменший третій товар
-    Акція 2: Безкоштовна доставка від 600 грн (нараховується пізніше)
-    Акція 3: 1+1 зі знижкою 30% на будь-який другий товар (парні зараховуються зі знижкою)
-    Акція 4: Пакетна пропозиція 4 парфуми за 680 грн (рівно 4 одиниці)
-    Акція 5: Знижка 20% при замовленні від 5 одиниць на кожен наступний товар (крім знижки дня)
-    Акція 6: Безкоштовна доставка на перше замовлення від 2 шт (текстова логіка, в кошику не враховується)
-    """
-    # Вхід: list dict з ключами id, name, price, discount_day (bool)
-    # Спочатку не враховуємо товари з discount_day=True (вони не змінюють ціну)
-
-    normal_items = [item for item in cart_items if not item.get('discount_day', False)]
-    discount_day_items = [item for item in cart_items if item.get('discount_day', False)]
-
-    total_discount = 0
-    updated_items = []
-
-    # Кількість товарів, що не discount_day
-    n = len(normal_items)
-
-    # Якщо 4 одиниці, акція 4 - пакетна пропозиція 680 грн
-    if n == 4:
-        # Ціна за всі 4 = 680 грн
-        # Розподіляємо по 170 грн кожен (щоб показати у кошику)
-        price_per_item = 680 / 4
-        for item in normal_items:
-            updated_items.append({**item, 'final_price': price_per_item})
-        total_discount += PARFUM_PRICE * 4 - 680
-    else:
-        # Інакше застосовуємо інші акції послідовно
-
-        # Початково без змін
-        for item in normal_items:
-            item['final_price'] = PARFUM_PRICE
-
-        # Акція 1: 3-й парфум зі знижкою 50% на найменший третій товар (не на кожен третій!)
-        if n >=3:
-            third_item = normal_items[2]
-            # 50% від 200 = 100 грн знижки
-            third_item['final_price'] = PARFUM_PRICE / 2
-            total_discount += PARFUM_PRICE / 2
-
-        # Акція 3: 1+1 зі знижкою 30% на будь-який другий товар (парні зараховуються зі знижкою)
-        # Застосовується після акції 1
-        # Кожен парний (2,4,6...) товар зі знижкою 30%
-        for i in range(1, n, 2):
-            item = normal_items[i]
-            if item['final_price'] == PARFUM_PRICE:  # якщо не змінено раніше (3-й може бути змінений)
-                discount_30 = PARFUM_PRICE * 0.3
-                item['final_price'] = PARFUM_PRICE - discount_30
-                total_discount += discount_30
-
-        # Акція 5: Знижка 20% при замовленні від 5 одиниць на кожен наступний товар (окрім "Знижка дня")
-        if n >= 5:
-            # Застосувати 20% знижку на товари з 5-го і далі (індекс 4+)
-            for i in range(4, n):
-                item = normal_items[i]
-                # Якщо ціна не знижена нижче (акції не сумуються)
-                if item['final_price'] == PARFUM_PRICE:
-                    discount_20 = PARFUM_PRICE * 0.2
-                    item['final_price'] = PARFUM_PRICE - discount_20
-                    total_discount += discount_20
-
-        updated_items.extend(normal_items)
-
-    # Для товарів зі "Знижка дня" ціна фіксована (new_price), без інших знижок
-    for item in discount_day_items:
-        item['final_price'] = DISCOUNT_DAY_ITEM['new_price']
-        updated_items.append(item)
-
-    # Повертаємо всі товари, включно зі знижкою дня, та суму знижки
-    return updated_items, total_discount
-
-def calculate_cart_summary(cart_items):
-    """
-    Обчислити суму, знижку, підсумок по кошику.
-    """
-    updated_items, total_discount = apply_discounts(cart_items)
-    total_price = sum(item['final_price'] for item in updated_items)
-    return updated_items, total_discount, total_price
-
-# --- КЛЮЧІ ГОЛОВНОГО МЕНЮ ---
-
-MAIN_MENU_IMAGE = 'https://i.imgur.com/EpS34Zp.jpg'
-MAIN_MENU_TEXT = (
-    "Ласкаво просимо до нашого магазину парфумів! Оберіть розділ:"
-)
-
+# --- Головне меню ---
 def main_menu_kb():
     kb = InlineKeyboardMarkup(row_width=6)
     kb.add(
-        InlineKeyboardButton("Каталог парфум.", callback_data="catalog"),
+        InlineKeyboardButton("Каталог парфум", callback_data="catalog"),
         InlineKeyboardButton("Акції та бонуси", callback_data="promos"),
         InlineKeyboardButton("Знижка дня", callback_data="discount_day"),
         InlineKeyboardButton("Як замовити?", callback_data="how_to_order"),
-        InlineKeyboardButton("Зв'язатися з нами", url="https://t.me/your_contact"),  # посилання на контакт
+        InlineKeyboardButton("Зв'язатися з нами", callback_data="contact_us"),
         InlineKeyboardButton("Кошик", callback_data="cart")
     )
     return kb
 
-# --- ОБРОБКА СТАРТОВОГО ПОВІДОМЛЕННЯ ---
-
-@dp.message_handler()
-async def any_message_start(message: types.Message):
-    # Запуск бота на будь-яке повідомлення
-    await send_main_menu(message.chat.id)
-
-async def send_main_menu(chat_id):
-    await bot.send_photo(
-        chat_id,
-        photo=MAIN_MENU_IMAGE,
-        caption=MAIN_MENU_TEXT,
-        reply_markup=main_menu_kb()
-    )
-
-# --- КАТАЛОГ ---
-
+# --- Меню каталогу ---
 def catalog_menu_kb():
     kb = InlineKeyboardMarkup(row_width=4)
     kb.add(
-        InlineKeyboardButton("Жіночі", callback_data="cat_women"),
+        InlineKeyboardButton("Жіночі", callback_data="cat_female"),
         InlineKeyboardButton("Унісекс", callback_data="cat_unisex"),
         InlineKeyboardButton("ТОП ПРОДАЖ", callback_data="cat_top"),
-        InlineKeyboardButton("⬅ Повернутися назад", callback_data="main_menu")
+        InlineKeyboardButton("Повернутися назад", callback_data="main_menu")
     )
     return kb
 
-@dp.callback_query_handler(lambda c: c.data == "catalog")
-async def show_catalog(callback: types.CallbackQuery):
-    await callback.answer()
-    await callback.message.edit_media(
-        media=InputMediaPhoto(
-            media=MAIN_MENU_IMAGE,
-            caption="Оберіть категорію парфумів:",
-        ),
-        reply_markup=catalog_menu_kb()
+# --- Кнопки під парфумом ---
+def perfume_buttons_kb():
+    kb = InlineKeyboardMarkup(row_width=3)
+    kb.add(
+        InlineKeyboardButton("➕ Додати до кошика", callback_data="add_to_cart"),
+        InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"),
+        InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
     )
-
-def parfums_kb(category):
-    kb = InlineKeyboardMarkup(row_width=2)
-    for parfum in PARFUMS[category]:
-        kb.insert(InlineKeyboardButton(parfum['name'], callback_data=f"show_{parfum['id']}"))
-    kb.add(InlineKeyboardButton("⬅ Повернутися назад", callback_data="catalog"))
     return kb
 
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("cat_"))
-async def show_parfums_category(callback: types.CallbackQuery):
-    category_key = callback.data[4:]
-    # Перевірка валідності
-    category_map = {
-        'women': 'Жіночі',
-        'unisex': 'Унісекс',
-        'top': 'ТОП ПРОДАЖ',
-    }
-    category = category_map.get(category_key)
-    if not category:
-        await callback.answer("Невідома категорія.", show_alert=True)
-        return
-    parfum = PARFUMS[category][0]
-    media = InputMediaPhoto(
-        media=parfum['photo'],
-        caption=f"Категорія: *{category}*\nОберіть парфум:",
-        parse_mode='MarkdownV2'
-    )
-    await callback.answer()
-    await callback.message.edit_media(
-        media=media,
-        reply_markup=parfums_kb(category)
-    )
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("show_"))
-async def show_parfum_detail(callback: types.CallbackQuery):
-    parfum_id = callback.data[5:]
-    # Знайти парфум по id в усіх категоріях
-    parfum = None
-    for cat, parfums in PARFUMS.items():
-        for p in parfums:
-            if p['id'] == parfum_id:
-                parfum = p
-                break
-        if parfum:
-            break
-    if not parfum:
-        await callback.answer("Парфум не знайдено.", show_alert=True)
-        return
-
+# --- Показ головного меню (картинка + текст + кнопки) ---
+async def send_main_menu(message_or_callback):
     text = (
-        f"*{escape_md(parfum['name'], version=2)}*\n"
-        f"Ціна: {PARFUM_PRICE} грн\n\n"
-        "Натисніть кнопку, щоб додати до кошика."
+        "Вітаємо у нашому магазині парфумів!\n"
+        "Обирайте категорію або дійте за меню."
     )
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("Додати в кошик", callback_data=f"add_{parfum['id']}"),
-        InlineKeyboardButton("⬅ Назад до категорії", callback_data="catalog")
-    )
-    await callback.answer()
-    await callback.message.edit_media(
-        media=InputMediaPhoto(media=parfum['photo'], caption=text, parse_mode='MarkdownV2'),
-        reply_markup=kb
-    )
+    main_photo_url = "https://via.placeholder.com/400x200?text=Головне+Меню+Парфумів"
 
-
-# --- КОШИК ---
-def get_cart(chat_id):
-    return user_carts.setdefault(chat_id, {})
-
-def cart_keyboard(cart):
-    kb = InlineKeyboardMarkup(row_width=4)
-    for parfum_id, quantity in cart.items():
-        # Знайти назву
-        parfum_name = None
-        for cat_parfums in PARFUMS.values():
-            for p in cat_parfums:
-                if p['id'] == parfum_id:
-                    parfum_name = p['name']
-                    break
-            if parfum_name:
-                break
-        kb.insert(
-            InlineKeyboardButton(f"{parfum_name} ×{quantity}", callback_data="noop")
-        )
-    kb.add(
-        InlineKeyboardButton("Оформити замовлення", callback_data="order"),
-        InlineKeyboardButton("Очистити кошик", callback_data="clear_cart"),
-        InlineKeyboardButton("⬅ Повернутися назад", callback_data="main_menu")
-    )
-    return kb
-
-@dp.callback_query_handler(lambda c: c.data == "cart")
-async def show_cart(callback: types.CallbackQuery):
-    await callback.answer()
-    cart = get_cart(callback.message.chat.id)
-    if not cart:
-        await callback.message.edit_caption(
-            "Ваш кошик порожній.",
+    if isinstance(message_or_callback, types.Message):
+        await bot.send_photo(
+            message_or_callback.chat.id,
+            main_photo_url,
+            caption=text,
             reply_markup=main_menu_kb()
         )
-        return
+    else:  # CallbackQuery
+        await message_or_callback.message.edit_media(
+            media=types.InputMediaPhoto(media=main_photo_url, caption=text, parse_mode='HTML'),
+            reply_markup=main_menu_kb()
+        )
 
-    # Формуємо список товарів з деталями для калькуляції
-    cart_items = []
-    for parfum_id, qty in cart.items():
-        parfum = None
-        for cat_parfums in PARFUMS.values():
-            for p in cat_parfums:
-                if p['id'] == parfum_id:
-                    parfum = p
-                    break
-            if parfum:
-                break
-        if parfum:
-            for _ in range(qty):
-                cart_items.append({'id': parfum['id'], 'name': parfum['name']})
+# --- Обробка будь-якого текстового повідомлення (запуск головного меню) ---
+@dp.message_handler()
+async def any_message_handler(message: types.Message):
+    await send_main_menu(message)
 
-    # Додаємо товар зі "Знижкою дня", якщо є в кошику
-    for i, item in enumerate(cart_items):
-        if item['id'] == DISCOUNT_DAY_ITEM['id']:
-            cart_items[i]['discount_day'] = True
+# --- Обробка callback для головного меню та каталогу ---
+@dp.callback_query_handler(lambda c: True)
+async def process_callback(callback: types.CallbackQuery):
+    data = callback.data
 
-    updated_items, total_discount, total_price = calculate_cart_summary(cart_items)
+    if data == "main_menu":
+        await send_main_menu(callback)
+        await callback.answer()
 
-    text_lines = ["Ваш кошик:\n"]
-    counts = {}
-    prices = {}
-    for item in updated_items:
-        counts[item['id']] = counts.get(item['id'], 0) + 1
-        prices[item['id']] = item['final_price']
+    elif data == "catalog":
+        text = "Оберіть категорію парфумів:"
+        await callback.message.edit_text(text, reply_markup=catalog_menu_kb())
+        await callback.answer()
 
-    for parfum_id, count in counts.items():
-        # Знайти назву
-        name = None
-        for cat_parfums in PARFUMS.values():
-            for p in cat_parfums:
-                if p['id'] == parfum_id:
-                    name = p['name']
-                    break
-            if name:
-                break
-        price_per_unit = prices[parfum_id]
-        total_item_price = price_per_unit * count
-        text_lines.append(f"{name} ×{count} — {total_item_price:.2f} грн ({price_per_unit:.2f} грн/шт)")
+    elif data in ["cat_female", "cat_unisex", "cat_top"]:
+        # Визначаємо категорію
+        category_map = {
+            "cat_female": "female",
+            "cat_unisex": "unisex",
+            "cat_top": "top"
+        }
+        category_key = category_map[data]
+        perfumes_list = perfumes[category_key]
 
-    text_lines.append(f"\nЗагальна знижка: {total_discount:.2f} грн")
-    text_lines.append(f"До оплати: {total_price:.2f} грн")
-    text_lines.append("\nЩоб оформити замовлення — натисніть кнопку.")
+        # Відправляємо 2 парфуми в 1 рядок (поки що послідовно)
+        # Через обмеження Telegram, краще відправляти повідомлення з фото окремо для кожного парфуму
+        # Але тут зробимо одне повідомлення з 2 назвами і кнопками для кожного
 
-    await callback.message.edit_caption(
-        '\n'.join(text_lines),
-        reply_markup=cart_keyboard(cart)
-    )
+        text = f"Категорія: {category_key.capitalize()}\nОберіть парфум:"
 
+        # Видаляємо старе повідомлення і відправляємо нове з фото та кнопками
+        media_group = [
+            types.InputMediaPhoto(media=perfumes_list[0]['photo'], caption=f"{perfumes_list[0]['name']}\nЦіна: {perfumes_list[0]['price']} грн"),
+            types.InputMediaPhoto(media=perfumes_list[1]['photo'], caption=f"{perfumes_list[1]['name']}\nЦіна: {perfumes_list[1]['price']} грн"),
+        ]
+        # Видаляємо старе повідомлення, бо edit_media для групи не підтримується
+        await callback.message.delete()
+        await bot.send_media_group(callback.message.chat.id, media_group)
 
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("add_"))
-async def add_to_cart(callback: types.CallbackQuery):
-    parfum_id = callback.data[4:]
-    cart = get_cart(callback.message.chat.id)
-    cart[parfum_id] = cart.get(parfum_id, 0) + 1
-    await callback.answer("Додано до кошика!")
-    await show_cart(callback)
+        # Після фото - відправляємо клавіатуру для кожного товару
+        # Для спрощення - під кожним фото буде однакова клавіатура, але Telegram не підтримує inline під фото окремо,
+        # тому в кожному повідомленні кнопки будуть загальні під останнім повідомленням.
 
+        kb = InlineKeyboardMarkup(row_width=3)
+        for p in perfumes_list:
+            kb.add(
+                InlineKeyboardButton(f"➕ Додати {p['name']} до кошика", callback_data=f"add_{p['id']}"),
+            )
+        kb.add(
+            InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
+        )
 
-@dp.callback_query_handler(lambda c: c.data == "clear_cart")
-async def clear_cart(callback: types.CallbackQuery):
-    user_carts[callback.message.chat.id] = {}
-    await callback.answer("Кошик очищено.")
-    await callback.message.edit_caption("Ваш кошик порожній.", reply_markup=main_menu_kb())
-    
+        await bot.send_message(callback.message.chat.id, "Оберіть дію:", reply_markup=kb)
+        await callback.answer()
 
-# --- ОФОРМЛЕННЯ ЗАМОВЛЕННЯ ---
-@dp.callback_query_handler(lambda c: c.data == "order")
-async def start_order(callback: types.CallbackQuery):
-    cart = get_cart(callback.message.chat.id)
-    if not cart:
-        await callback.answer("Ваш кошик порожній, додайте товари.")
-        return
-    await callback.answer()
-    await bot.send_message(callback.message.chat.id, "Введіть ваше ім'я:")
-    await OrderStates.waiting_for_name.set()
+    elif data.startswith("add_"):
+        user_id = callback.from_user.id
+        perfume_id = data[4:]
 
-@dp.message_handler(state=OrderStates.waiting_for_name)
-async def process_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer("Введіть ваш номер телефону:")
-    await OrderStates.waiting_for_phone.set()
+        # Знаходимо парфум за id
+        all_perfumes = perfumes['female'] + perfumes['unisex'] + perfumes['top']
+        perfume_item = next((p for p in all_perfumes if p['id'] == perfume_id), None)
+        if perfume_item is None:
+            await callback.answer("Парфум не знайдено", show_alert=True)
+            return
 
-@dp.message_handler(state=OrderStates.waiting_for_phone)
-async def process_phone(message: types.Message, state: FSMContext):
-    phone = message.text
-    # Проста перевірка формату
-    if len(phone) < 7:
-        await message.answer("Введіть коректний номер телефону:")
-        return
-    await state.update_data(phone=phone)
-    await message.answer("Введіть ваше місто:")
-    await OrderStates.waiting_for_city.set()
+        # Додаємо до кошика
+        user_carts.setdefault(user_id, [])
+        user_carts[user_id].append(perfume_item)
 
-@dp.message_handler(state=OrderStates.waiting_for_city)
-async def process_city(message: types.Message, state: FSMContext):
-    await state.update_data(city=message.text)
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("Доставка на адресу", callback_data="delivery_address"),
-        InlineKeyboardButton("Доставка у відділення", callback_data="delivery_post_office")
-    )
-    await message.answer("Оберіть тип доставки:", reply_markup=kb)
-    await OrderStates.waiting_for_delivery_type.set()
+        await callback.answer(f"Товар '{perfume_item['name']}' доданий до кошика!", show_alert=True)
 
-@dp.callback_query_handler(
-    lambda c: c.data in ["delivery_address", "delivery_post_office"],
-    state=OrderStates.waiting_for_delivery_type
-)
-async def process_delivery_type(callback: types.CallbackQuery, state: FSMContext):
-    delivery_type = callback.data
-    await state.update_data(delivery_type=delivery_type)
-    await callback.answer()
-    if delivery_type == "delivery_address":
-        await bot.send_message(callback.message.chat.id, "Введіть адресу доставки (вулиця, номер будинку):")
-        await OrderStates.waiting_for_address_or_post_service.set()
     else:
+        await callback.answer()
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
+# Додаємо до існуючого коду нижче або у відповідні блоки
+
+# --- Тексти для нових розділів ---
+PROMOS_TEXT = (
+    "🎉 Акції та бонуси:\n\n"
+    "1. 1+1 зі знижкою 20% на другий товар\n"
+    "2. Пакетна пропозиція: 4 парфуми за 680 грн\n"
+    "3. Безкоштовна доставка від 600 грн\n"
+    "4. Безкоштовна доставка на перше замовлення від 2 шт (без акцій)\n"
+    "5. Розіграш серед нових покупців\n"
+)
+
+DISCOUNT_DAY_ITEM = {
+    'id': 'discount_day_1',
+    'name': 'Парфум Знижка Дня',
+    'photo': 'https://via.placeholder.com/150?text=Знижка+Дня',
+    'original_price': 200,
+    'discount_price': 160
+}
+
+HOW_TO_ORDER_TEXT = (
+    "🛒 Як замовити?\n\n"
+    "1. Оберіть парфум у каталозі.\n"
+    "2. Додайте у кошик.\n"
+    "3. Оформіть замовлення через кошик.\n"
+    "4. Оберіть спосіб доставки.\n"
+    "5. Очікуйте на підтвердження та номер накладної.\n"
+)
+
+CONTACT_US_TEXT = (
+    "📞 Зв'язатися з нами:\n\n"
+    "Телефон: +38 099 123 45 67\n"
+    "Telegram: @parfum_shop_support\n"
+    "Email: support@parfumshop.ua\n"
+)
+
+# --- Кнопка "Повернутися в головне меню" ---
+def back_to_main_kb():
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu"))
+    return kb
+
+# --- Обробка callback для нових пунктів меню ---
+@dp.callback_query_handler(lambda c: c.data in ["promos", "discount_day", "how_to_order", "contact_us"])
+async def special_sections_handler(callback: types.CallbackQuery):
+    data = callback.data
+
+    if data == "promos":
+        await callback.message.edit_text(PROMOS_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+    elif data == "discount_day":
+        caption = (
+            f"{DISCOUNT_DAY_ITEM['name']}\n"
+            f"Ціна зі знижкою: {DISCOUNT_DAY_ITEM['discount_price']} грн (звичайна {DISCOUNT_DAY_ITEM['original_price']} грн)"
+        )
+        photo_url = DISCOUNT_DAY_ITEM['photo']
+        # Оновлюємо повідомлення фото + текст + кнопка "Додати до кошика"
         kb = InlineKeyboardMarkup(row_width=2)
         kb.add(
-            InlineKeyboardButton("Нова Пошта", callback_data="post_np"),
-            InlineKeyboardButton("Укрпошта", callback_data="post_ukr")
+            InlineKeyboardButton("➕ Додати до кошика", callback_data=f"add_{DISCOUNT_DAY_ITEM['id']}"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
         )
-        await bot.send_message(callback.message.chat.id, "Оберіть службу доставки:", reply_markup=kb)
-        await OrderStates.waiting_for_address_or_post_service.set()
+        await callback.message.edit_media(
+            media=types.InputMediaPhoto(media=photo_url, caption=caption),
+            reply_markup=kb
+        )
+        await callback.answer()
 
-@dp.callback_query_handler(
-    lambda c: c.data in ["post_np", "post_ukr"],
-    state=OrderStates.waiting_for_address_or_post_service
-)
-async def process_post_service(callback: types.CallbackQuery, state: FSMContext):
-    post_service = callback.data
-    await state.update_data(post_service=post_service)
+    elif data == "how_to_order":
+        await callback.message.edit_text(HOW_TO_ORDER_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+    elif data == "contact_us":
+        await callback.message.edit_text(CONTACT_US_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+# --- Обробка додавання "Знижка дня" до кошика ---
+@dp.callback_query_handler(lambda c: c.data == f"add_{DISCOUNT_DAY_ITEM['id']}")
+async def add_discount_day_to_cart(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    # Формуємо товар зі знижкою
+    perfume_item = {
+        'id': DISCOUNT_DAY_ITEM['id'],
+        'name': DISCOUNT_DAY_ITEM['name'],
+        'price': DISCOUNT_DAY_ITEM['discount_price'],
+        'photo': DISCOUNT_DAY_ITEM['photo']
+    }
+    user_carts.setdefault(user_id, [])
+    user_carts[user_id].append(perfume_item)
+    await callback.answer(f"Товар '{perfume_item['name']}' доданий до кошика зі знижкою!", show_alert=True)
+
+# --- Додаємо обробку повернення в головне меню для існуючих обробників ---
+@dp.callback_query_handler(lambda c: c.data == "main_menu")
+async def go_main_menu(callback: types.CallbackQuery):
+    await send_main_menu(callback)
     await callback.answer()
-    await bot.send_message(callback.message.chat.id, "Введіть номер відділення або адресу вручну:")
-    await OrderStates.confirmation.set()
+from aiogram import types
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from loader import dp
+from utils.cart import get_cart, calculate_cart_total, clear_cart
+from data.config import SHEET_NAME
+from loader import sheet, bot
 
-@dp.message_handler(state=OrderStates.waiting_for_address_or_post_service)
-async def process_address_manual(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    if data.get('delivery_type') == 'delivery_address':
-        await state.update_data(address=message.text)
-        await confirm_order(message, state)
-    else:
-        await state.update_data(post_address=message.text)
-        await confirm_order(message, state)
+class OrderState(StatesGroup):
+    full_name = State()
+    phone = State()
+    city = State()
+    delivery_type = State()
+    address = State()
+    post_service = State()
+    post_number = State()
 
-async def confirm_order(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    cart = get_cart(message.chat.id)
+@dp.message_handler(text="Оформити замовлення")
+async def start_order(message: types.Message, state: FSMContext):
+    cart = get_cart(message.from_user.id)
     if not cart:
-        await message.answer("Ваш кошик порожній, замовлення скасовано.")
-        await state.finish()
+        await message.answer("Ваш кошик порожній.")
         return
+    await message.answer("✍ Напишіть ваше ПІБ")
+    await OrderState.full_name.set()
 
-    # Підготувати текст підтвердження
-    text = (
-        f"Підтвердіть ваше замовлення:\n\n"
-        f"Ім'я: {escape_md(data['name'], version=2)}\n"
-        f"Телефон: {escape_md(data['phone'], version=2)}\n"
-        f"Місто: {escape_md(data['city'], version=2)}\n"
-        f"Тип доставки: {escape_md('Адресна доставка' if data['delivery_type']=='delivery_address' else 'Доставка у відділення', version=2)}\n"
+@dp.message_handler(state=OrderState.full_name)
+async def get_full_name(message: types.Message, state: FSMContext):
+    await state.update_data(full_name=message.text)
+    await message.answer("📞 Вкажіть Ваш номер телефону")
+    await OrderState.phone.set()
+
+@dp.message_handler(state=OrderState.phone)
+async def get_phone(message: types.Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await message.answer("🏙 Вкажіть місто доставки")
+    await OrderState.city.set()
+
+@dp.message_handler(state=OrderState.city)
+async def get_city(message: types.Message, state: FSMContext):
+    await state.update_data(city=message.text)
+
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton("📦 Доставка на пошту", callback_data="delivery_post"),
+        InlineKeyboardButton("🚚 Адресна доставка", callback_data="delivery_address")
     )
-    if data['delivery_type'] == 'delivery_address':
-        text += f"Адреса: {escape_md(data.get('address',''), version=2)}\n"
+
+    await message.answer("🚚 Оберіть зручну для вас доставку", reply_markup=keyboard)
+    await OrderState.delivery_type.set()
+
+@dp.callback_query_handler(lambda c: c.data == "delivery_address", state=OrderState.delivery_type)
+async def address_delivery(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.edit_reply_markup()
+    await bot.send_message(callback_query.from_user.id, "📝 Введіть повну адресу доставки")
+    await state.update_data(delivery_type="Адресна доставка")
+    await OrderState.address.set()
+
+@dp.message_handler(state=OrderState.address)
+async def get_address(message: types.Message, state: FSMContext):
+    await state.update_data(address=message.text)
+    await finish_order(message, state)
+
+@dp.callback_query_handler(lambda c: c.data == "delivery_post", state=OrderState.delivery_type)
+async def post_delivery(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.edit_reply_markup()
+
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton("Нова Пошта", callback_data="nova_poshta"),
+        InlineKeyboardButton("Укрпошта", callback_data="ukrposhta")
+    )
+
+    await bot.send_message(callback_query.from_user.id, "📮 Оберіть поштову службу", reply_markup=keyboard)
+
+@dp.callback_query_handler(lambda c: c.data in ["nova_poshta", "ukrposhta"], state=OrderState.delivery_type)
+async def get_post_service(callback_query: types.CallbackQuery, state: FSMContext):
+    service = "Нова Пошта" if callback_query.data == "nova_poshta" else "Укрпошта"
+    await callback_query.message.edit_reply_markup()
+    await bot.send_message(callback_query.from_user.id, f"🔢 Введіть номер відділення {service}")
+    await state.update_data(delivery_type="Поштова доставка", post_service=service)
+    await OrderState.post_number.set()
+
+@dp.message_handler(state=OrderState.post_number)
+async def get_post_number(message: types.Message, state: FSMContext):
+    await state.update_data(post_number=message.text)
+    await finish_order(message, state)
+
+async def finish_order(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    cart = get_cart(message.from_user.id)
+    total = calculate_cart_total(cart)
+
+    items = "\n".join([f"- {item['name']} x{item['quantity']} = {item['price']*item['quantity']} грн" for item in cart])
+
+    order_text = (
+        f"🧾 <b>Ваше замовлення:</b>\n"
+        f"{items}\n\n"
+        f"💰 <b>Разом:</b> {total} грн\n\n"
+        f"👤 ПІБ: {data.get('full_name')}\n"
+        f"📞 Телефон: {data.get('phone')}\n"
+        f"🏙 Місто: {data.get('city')}\n"
+        f"🚚 Доставка: {data.get('delivery_type')}\n"
+    )
+
+    if data.get("delivery_type") == "Адресна доставка":
+        order_text += f"🏡 Адреса: {data.get('address')}\n"
     else:
-        service_name = "Нова Пошта" if data.get('post_service') == "post_np" else "Укрпошта"
-        text += f"Служба доставки: {service_name}\n"
-        text += f"Відділення/адреса: {escape_md(data.get('post_address',''), version=2)}\n"
+        order_text += (
+            f"📮 Служба: {data.get('post_service')}\n"
+            f"🏤 Відділення №: {data.get('post_number')}\n"
+        )
 
-    # Формуємо список товарів із цінами для калькуляції
-    cart_items = []
-    for parfum_id, qty in cart.items():
-        parfum = None
-        for cat_parfums in PARFUMS.values():
-            for p in cat_parfums:
-                if p['id'] == parfum_id:
-                    parfum = p
-                    break
-            if parfum:
-                break
-        if parfum:
-            for _ in range(qty):
-                cart_items.append({
-                    'id': parfum['id'],
-                    'name': parfum['name'],
-                    'price': parfum['price']
-                })
+    await message.answer(order_text, parse_mode="HTML")
+    
+    # Запис до Google Sheets
+    sheet.append_row([
+        message.from_user.id,
+        data.get('full_name'),
+        data.get('phone'),
+        data.get('city'),
+        data.get('delivery_type'),
+        data.get('address') or f"{data.get('post_service')} №{data.get('post_number')}",
+        str(total)
+    ], table_range=SHEET_NAME)
 
-    # Позначаємо "Знижка дня"
-    for i, item in enumerate(cart_items):
-        if item['id'] == DISCOUNT_DAY_ITEM['id']:
-            cart_items[i]['discount_day'] = True
-
-    updated_items, total_discount, total_price = calculate_cart_summary(cart_items)
-
-    for item in updated_items:
-        text += f"\n- {escape_md(item['name'], version=2)} — {item['final_price']:.2f} грн"
-
-    text += f"\n\nЗагальна знижка: {total_discount:.2f} грн"
-    text += f"\nДо оплати: {total_price:.2f} грн"
-
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton("✅ Підтвердити замовлення", callback_data="confirm_order"))
-    kb.add(InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order"))
-
-    await message.answer(text, parse_mode='MarkdownV2', reply_markup=kb)
-
-# Щоб виправити помилку `KeyError: 'price'`, потрібно переконатися, що кожен елемент у `cart_items` (тобто кожен товар у кошику) містить ключ `'price'`. Помилка сталася в функції `calculate_cart_summary`, де очікується, що кожен товар має `item['price']`, але цей ключ відсутній.
-
+    clear_cart(message.from_user.id)
+    await state.finish()
+    await message.answer("✅ Дякуємо за замовлення! Менеджер зв’яжеться з вами найближчим часом.")
