@@ -336,7 +336,45 @@ def calculate_cart(cart, day_discount_percent=0):
     # Фінальна сума з урахуванням знижок та знижки дня
     total_discount = max_discount + day_discount_amount
     final_price = total_price - total_discount
+@dp.callback_query_handler(lambda c: c.data == "open_cart")
+async def open_cart_handler(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    cart = user_carts.get(user_id, [])
 
+    if not cart:
+        await callback.answer("🛒 Ваш кошик порожній.", show_alert=True)
+        await callback.message.edit_text("🛒 Ваш кошик порожній.", reply_markup=None)
+        return
+
+    text_items = ""
+    total = 0
+    keyboard = InlineKeyboardMarkup(row_width=3)
+
+    for i, item in enumerate(cart, 1):
+        item_total = item['price'] * item['quantity']
+        text_items += f"{i}. {escape_md(item['name'])} — {item['price']} грн × {item['quantity']} = {item_total} грн\n"
+        total += item_total
+
+        keyboard.add(
+            InlineKeyboardButton(f"➖ {i}", callback_data=f"decrease_{i-1}"),
+            InlineKeyboardButton(f"❌ {i}", callback_data=f"remove_{i-1}"),
+            InlineKeyboardButton(f"➕ {i}", callback_data=f"increase_{i-1}")
+        )
+
+    discount = user_discounts.get(user_id, 0)
+    final = total - discount if total >= discount else 0
+
+    text = (
+        f"🛒 *Ваш кошик:*\n\n"
+        f"{text_items}\n"
+        f"💵 *Сума без знижок:* {total} грн\n"
+        f"🎁 *Знижка:* {discount} грн\n"
+        f"✅ *До сплати:* {final} грн\n\n"
+        "Використайте кнопки для зміни кількості або видалення товару."
+    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
     # Додаємо поле discount (поки 0) для кожного товару (можна деталізувати, якщо потрібно)
     for item in cart_summary:
         item['discount'] = 0
