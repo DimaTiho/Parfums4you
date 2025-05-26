@@ -264,7 +264,14 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     if user_id not in user_carts:
         user_carts[user_id] = []
-    user_carts[user_id].append({"name": perfume_name, "price": 200})
+       # Перевіряємо, чи товар вже в кошику
+    for item in user_carts[user_id]:
+        if item["name"] == perfume_name:
+            item["quantity"] += 1
+            break
+    else:
+        # Якщо товару нема — додаємо з quantity=1
+    user_carts[user_id].append({"name": perfume_name, "price": 200"quantity": 1})
 
     buttons = InlineKeyboardMarkup(inline_keyboard=[
         [
