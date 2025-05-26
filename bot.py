@@ -283,8 +283,10 @@ def calculate_cart(cart, day_discount_percent=0):
      if not cart:
          return {"cart": [], "total": 0}
     # Підрахунок кількості кожного товару
-    counts = Counter(item['name'] for item in cart)
-    prices = {item['name']: item['price'] for item in cart}
+    counts = Counter(item['name'] 
+              for item in cart)
+    prices = {item['name']: item['price'] 
+              for item in cart}
 
     cart_summary = []
     for name, count in counts.items():
