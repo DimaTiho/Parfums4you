@@ -8,7 +8,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from some_module import apply_third_item_discount
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -590,7 +589,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
-    cart = apply_third_item_discount(cart)
+  
 
     text_items = ""
     total = 0
