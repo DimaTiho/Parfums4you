@@ -311,10 +311,10 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
 async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
-if not cart:
-    await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
+    if not cart:
+        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
-    return
+        return
 
 # Викликаємо calculate_cart з усіма знижками
 result = calculate_cart(cart, day_discount_percent=0)  # day_discount_percent можна динамічно задавати
