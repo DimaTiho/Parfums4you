@@ -8,6 +8,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+from collections import Counter
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -227,14 +228,10 @@ async def promotions_callback(callback_or_message):
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        
         InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
-        
         InlineKeyboardButton("📄 Умови 1+1 зі знижкою", callback_data="promo_cond_3"),
-        
         InlineKeyboardButton("📄 Умови пакетної пропозиції", callback_data="promo_cond_4"),
         InlineKeyboardButton("📄 Умови знижки від 5 одиниць", callback_data="promo_cond_5"),
-        
         InlineKeyboardButton("📄 Умови безкоштовної доставки на перше замовлення", callback_data="promo_cond_6"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
