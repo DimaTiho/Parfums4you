@@ -62,7 +62,7 @@ user_carts = {}
 
 # --- Головне меню ---
 def main_menu_kb():
-    kb = InlineKeyboardMarkup(row_width=6)
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("Каталог парфум", callback_data="catalog"),
         InlineKeyboardButton("Акції та бонуси", callback_data="promos"),
@@ -119,6 +119,99 @@ async def send_main_menu(message_or_callback):
 @dp.message_handler()
 async def any_message_handler(message: types.Message):
     await send_main_menu(message)
+# --- Обробка callback для нових пунктів меню ---
+@dp.callback_query_handler(lambda c: c.data in ["promos", "discount_day", "how_to_order", "contact_us", "cart"])
+async def process_additional_callbacks(callback: types.CallbackQuery):
+    data = callback.data
+    chat_id = callback.message.chat.id
+
+    if data == "promos":
+        await callback.message.edit_text(PROMOS_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+    elif data == "discount_day":
+        # Показуємо акційний товар "Знижка дня"
+        text = (
+            f"{DISCOUNT_DAY_ITEM['name']}\n"
+            f"Ціна зі знижкою: {DISCOUNT_DAY_ITEM['discount_price']} грн (замість {DISCOUNT_DAY_ITEM['original_price']} грн)"
+        )
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(
+            InlineKeyboardButton(f"➕ Додати {DISCOUNT_DAY_ITEM['name']} до кошика", callback_data=f"add_{DISCOUNT_DAY_ITEM['id']}"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
+        )
+        await callback.message.edit_media(
+            media=types.InputMediaPhoto(media=DISCOUNT_DAY_ITEM['photo'], caption=text),
+            reply_markup=kb
+        )
+        await callback.answer()
+
+    elif data == "how_to_order":
+        await callback.message.edit_text(HOW_TO_ORDER_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+    elif data == "contact_us":
+        await callback.message.edit_text(CONTACT_US_TEXT, reply_markup=back_to_main_kb())
+        await callback.answer()
+
+    elif data == "cart":
+        user_id = callback.from_user.id
+        cart = user_carts.get(user_id, [])
+        if not cart:
+            await callback.message.edit_text("Ваш кошик порожній.", reply_markup=back_to_main_kb())
+            await callback.answer()
+            return
+
+        # Формуємо текст з товарами у кошику
+        lines = []
+        total = 0
+        for i, item in enumerate(cart, 1):
+            lines.append(f"{i}. {item['name']} — {item['price']} грн")
+            total += item['price']
+
+        text = "Ваш кошик:\n\n" + "\n".join(lines) + f"\n\nЗагальна сума: {total} грн"
+
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu"),
+            InlineKeyboardButton("Оформити замовлення", callback_data="checkout")
+        )
+
+        await callback.message.edit_text(text, reply_markup=kb)
+        await callback.answer()
+
+# --- Обробка додавання до кошика для Знижка дня ---
+@dp.callback_query_handler(lambda c: c.data.startswith("add_"))
+async def add_to_cart_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    perfume_id = callback.data[4:]
+
+    all_perfumes = perfumes['female'] + perfumes['unisex'] + perfumes['top']
+    # Додаємо акційний товар Знижка дня
+    if perfume_id == DISCOUNT_DAY_ITEM['id']:
+        perfume_item = {
+            'id': DISCOUNT_DAY_ITEM['id'],
+            'name': DISCOUNT_DAY_ITEM['name'],
+            'photo': DISCOUNT_DAY_ITEM['photo'],
+            'price': DISCOUNT_DAY_ITEM['discount_price']
+        }
+    else:
+        perfume_item = next((p for p in all_perfumes if p['id'] == perfume_id), None)
+
+    if perfume_item is None:
+        await callback.answer("Парфум не знайдено", show_alert=True)
+        return
+
+    user_carts.setdefault(user_id, [])
+    user_carts[user_id].append(perfume_item)
+
+    await callback.answer(f"Товар '{perfume_item['name']}' доданий до кошика!", show_alert=True)
+
+# --- Обробка оформлення замовлення (заглушка) ---
+@dp.callback_query_handler(lambda c: c.data == "checkout")
+async def checkout_handler(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.edit_text("Функціонал оформлення замовлення ще в розробці.", reply_markup=back_to_main_kb())
 
 # --- Обробка callback для головного меню та каталогу ---
 @dp.callback_query_handler(lambda c: True)
