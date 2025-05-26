@@ -1,8 +1,6 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import Message
-from aiogram.types import CallbackQuery
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -10,6 +8,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+from collections import Counter
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -38,7 +37,7 @@ except:
 
 
 # Ініціалізація бота і диспетчера
-bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN_V2)
+bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.MARKDOWN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 # Стан машини
@@ -50,18 +49,8 @@ class OrderStates(StatesGroup):
     post_service = State()
     address_or_post = State()
     confirmation = State()
-
-# Тимчасове збереження кошика
-
-# === Акція: 3-й парфум зі знижкою 50% ===
-def apply_third_item_discount(cart):
-    if len(cart) >= 3:
-        sorted_cart = sorted(cart, key=lambda x: x['price'])
-        sorted_cart[2]['price'] = round(sorted_cart[2]['price'] * 0.5, 2)
-    return cart
-user_carts = {}
-user_discounts = {}
-user_data = {}
+  
+user_carts = {}  # Словник користувачів з їхніми кошиками
 
 @dp.message_handler(lambda message: message.text == "Як замовити" or message.text.lower() == "/how_to_order")
 async def how_to_order(message: types.Message):
@@ -98,12 +87,12 @@ async def back_to_main(callback: types.CallbackQuery):
     chat_id=callback.message.chat.id,
     photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
     caption=(
-            "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-            "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
-            "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-            "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
-            "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
-            "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
+        "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
+        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
+        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
+        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
+        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
         ),
         reply_markup=main_menu,
     )
@@ -112,30 +101,30 @@ async def back_to_main(callback: types.CallbackQuery):
 main_menu_buttons = [
     [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
     [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
-    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
-    [InlineKeyboardButton("✒️Зв'язатися з нами", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
+    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
 # === Каталог парфумів ===
 catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("🌹💐Унісекс", callback_data="cat_unisex")],
+    [InlineKeyboardButton("💃🏻Жіночі", callback_data="cat_women"), InlineKeyboardButton("👩🏼‍🦰👱🏼Унісекс", callback_data="cat_unisex")],
     [InlineKeyboardButton("‼️Топ продаж", callback_data="cat_top")],
     [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
 ])
 
 perfume_catalog = {
     "cat_women": [
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Dior J'adore", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."}
+        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Dior J'adore", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1}
     ],
     "cat_unisex": [
-        {"name": "Tom Ford Tobacco Vanille", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Byredo Gypsy Water", "price": 200, "photo": "https://example.com/byredo.jpg"}
+        {"name": "Tom Ford Tobacco Vanille", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Byredo Gypsy Water", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.jpg","quantity": 1}
     ],
     "cat_top": [
-        {"name": "Creed Aventus", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."},
-        {"name": "Maison Francis Kurkdjian Baccarat Rouge", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."}
+        {"name": "Creed Aventus", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Maison Francis Kurkdjian Baccarat Rouge", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1}
     ]
 }
 
@@ -213,98 +202,39 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     if not perfume:
         await callback.answer("Помилка: товар не знайдено.")
         return
-    discounted_price = int(perfume["price"] * 0.85)
+    discounted_price = int(perfume["price"] * 0.75)
     user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price})
     await callback.answer("✅ Додано до кошика зі знижкою!")
-# === Відгуки з промокодом ===
-used_promo_users = set()
-PROMO_CODES = ["PROMO10", "DISCOUNT15", "SALE20"]
-
-# Підключення до Google Sheets
-import gspread
-gc = gspread.service_account(filename='credentials.json')
-spreadsheet = gc.open("Parfums")
-reviews_sheet = spreadsheet.worksheet("Відгуки")  # 3-й аркуш
-
-class ReviewState(StatesGroup):
-    waiting_text = State()
-
-@dp.callback_query_handler(lambda c: c.data == "reviews")
-async def ask_for_review(callback: CallbackQuery):
-    await bot.send_message(callback.from_user.id, "✏️ Напишіть свій відгук нижче та отримайте промокод на наступне замовлення!")
-    await ReviewState.waiting_text.set()
-    await callback.answer()
-
-@dp.message_handler(state=ReviewState.waiting_text)
-async def receive_review(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-    review_text = message.text
-
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    try:
-        reviews_sheet.append_row([str(user_id), review_text, now_str])
-    except Exception as e:
-        await message.answer("Помилка збереження відгуку. Спробуйте пізніше.")
-        await state.finish()
-        return
-
-    if user_id in used_promo_users:
-        await message.answer("Дякуємо за відгук! Ви вже отримали промокод раніше.")
-    else:
-        if PROMO_CODES:
-            promo = PROMO_CODES.pop()
-        else:
-            promo = "PROMO10"
-        used_promo_users.add(user_id)
-        await message.answer(f"🎁 Дякуємо за відгук! Ваш промокод: *{promo}*")
-
-    await state.finish()
-
-@dp.message_handler(commands=["reviews"])
-async def show_reviews(message: Message):
-    all_reviews = reviews_sheet.get_all_values()
-
-    if len(all_reviews) <= 1:
-        await message.answer("Поки що відгуків немає.")
-        return
-
-    reviews_texts = [row[1] for row in all_reviews[1:] if len(row) > 1 and row[1].strip()]
-
-    text = "*Відгуки наших клієнтів:*\n\n"
-    for r in reviews_texts[-5:]:
-        text += f"• {r}\n\n"
-
-    await message.answer(text, parse_mode="Markdown")
-
 
 # Блок: Акції та бонуси
-@dp.message_handler(lambda message: message.text == "Акції та бонуси")
-async def promotions_handler(message: types.Message):
-    await promotions_callback(message)
-
 @dp.callback_query_handler(lambda c: c.data == "promotions")
 async def promotions_callback(callback_or_message):
     promo_text = (
         "🎉 *Наявні акції:*\n"
         "1️⃣ *3-й парфум зі знижкою -50%*\n"
-        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n"
-        "2️⃣ *Безкоштовна доставка від 500 грн*\n"
-        "Оформіть замовлення на суму від 500 грн (без доставки) — ми доставимо безкоштовно!\n"
-        "3️⃣ *Знижка для подруг — 10% кожній!*\n"
-        "Запросіть подругу — обидві отримаєте знижку після замовлення.\n"
-        "4️⃣ *Набір зі знижкою -15%*\n"
-        "При покупці 3+ парфумів — знижка 15% на кожен.\n"
+        "Купіть 2 будь-які парфуми — третій отримаєте зі знижкою 50%\n\n"
+        "2️⃣ *Безкоштовна доставка від 600 грн*\n"
+        "Оформіть замовлення на суму від 600 грн (без доставки) — ми доставимо безкоштовно!\n\n"
+        "3️⃣ *1+1 зі знижкою 30% на другий товар*\n"
+        "Купуйте один парфум, другий отримаєте зі знижкою 30%\n\n"
+        "4️⃣ *Пакетна пропозиція: 4 парфуми за 680 грн*\n"
+        "Акція діє при замовленні рівно 4 одиниць.\n\n"
+        "5️⃣ *Знижка 20% від 5 одиниць*\n"
+        "При замовленні від 5 одиниць — знижка 20% на кожен наступний товар.\n\n"
+        "6️⃣ *Безкоштовна доставка на перше замовлення від 2 шт*\n"
+        "Акція не сумується з іншими знижками.\n\n"
+        "7️⃣ *Розіграш серед нових покупців*\n"
+        "Приймайте участь та вигравайте призи!\n"
     )
 
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("📄 Умови 3-й парфум", callback_data="promo_cond_1"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("📄 Умови безкоштовної доставки", callback_data="promo_cond_2"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови з подругою", callback_data="promo_cond_3"),
-        InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
-        InlineKeyboardButton("📄 Умови набору зі знижкою", callback_data="promo_cond_4"),
+        InlineKeyboardButton("📄 Умови 1+1 зі знижкою", callback_data="promo_cond_3"),
+        InlineKeyboardButton("📄 Умови пакетної пропозиції", callback_data="promo_cond_4"),
+        InlineKeyboardButton("📄 Умови знижки від 5 одиниць", callback_data="promo_cond_5"),
+        InlineKeyboardButton("📄 Умови безкоштовної доставки на перше замовлення", callback_data="promo_cond_6"),
         InlineKeyboardButton("📦 Перейти до каталогу", callback_data="catalog"),
         InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
     )
@@ -318,15 +248,12 @@ async def promotions_callback(callback_or_message):
 @dp.callback_query_handler(lambda c: c.data.startswith("promo_cond_"))
 async def promo_conditions(call: types.CallbackQuery):
     conditions = {
-        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*"
-"Купіть будь-які 2 парфуми та отримайте третій зі знижкою 50%."
-"Знижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
-        "promo_cond_2": "🚚 *Безкоштовна доставка від 500 грн*"
-"Загальна сума без урахування доставки має перевищувати 500 грн.",
-        "promo_cond_3": "👭 *Знижка для подруг — 10% кожній!*"
-"Надішліть посилання подрузі. Обидві отримаєте знижку після замовлення.",
-        "promo_cond_4": "🎁 *Набір зі знижкою -15%*"
-"При купівлі 3 або більше парфумів — знижка 15% на кожен."
+        "promo_cond_1": "🎉 *3-й парфум зі знижкою -50%*\nКупіть будь-які 2 парфуми та отримайте третій зі знижкою 50%.\nЗнижка застосовується до найменшого за ціною товару. Доставка не входить в облік.",
+        "promo_cond_2": "🚚 *Безкоштовна доставка від 600 грн*\nЗагальна сума без урахування доставки має перевищувати 600 грн.",
+        "promo_cond_3": "🛍 *1+1 зі знижкою 30%*\nКупуйте один парфум, другий отримаєте зі знижкою 30%.",
+        "promo_cond_4": "🎁 *Пакетна пропозиція: 4 парфуми за 680 грн*\nАкція діє при замовленні рівно 4 одиниць.",
+        "promo_cond_5": "🔟 *Знижка 20% від 5 одиниць*\nПри замовленні від 5 одиниць — знижка 20% на кожен наступний товар.",
+        "promo_cond_6": "🎉 *Безкоштовна доставка на перше замовлення від 2 шт*\nАкція не сумується з іншими знижками."
     }
     await call.message.answer(conditions[call.data])
     await call.answer()
@@ -352,56 +279,141 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     await callback.message.answer(f"✅ {perfume_name} додано до кошика.", reply_markup=buttons)
     await callback.answer()
 
+def calculate_cart(cart, day_discount_percent=0):
+     
+    # Підрахунок кількості кожного товару
+    counts = Counter(item['name'] for item in cart)
+    prices = {item['name']: item['price'] for item in cart}
+
+    cart_summary = []
+    for name, count in counts.items():
+        cart_summary.append({
+            'name': name,
+            'quantity': count,
+            'price': prices[name]
+        })
+
+    total_price = sum(item['price'] * item['quantity'] for item in cart_summary)
+
+    # Акції:
+
+    # 1. Знижка на 3-й товар -50% на найменший третій товар
+    discount_3rd = 0
+    if sum(counts.values()) >= 3:
+        all_prices = []
+        for item in cart_summary:
+            all_prices.extend([item['price']] * item['quantity'])
+        all_prices.sort()
+        discount_3rd = all_prices[2] * 0.5
+
+    # 2. Пакетна пропозиція: 4 парфуми за 680 грн
+    package_discount = 0
+    if sum(counts.values()) == 4:
+        if total_price > 680:
+            package_discount = total_price - 680
+
+    # 3. Знижка 20% від 5 одиниць
+    discount_20_percent = 0
+    if sum(counts.values()) >= 5:
+        discount_20_percent = total_price * 0.2
+
+    # 4. 1+1 зі знижкою 30% на другий товар
+    discount_bogo = 0
+    for item in cart_summary:
+        pairs = item['quantity'] // 2
+        discount_bogo += pairs * item['price'] * 0.3
+
+    # 5. Безкоштовна доставка від 600 грн (після знижок)
+    max_discount = max(discount_3rd, package_discount, discount_20_percent, discount_bogo)
+    price_after_discount = total_price - max_discount
+    free_shipping = price_after_discount >= 600
+
+    # 6. Знижка дня (окремо)
+    day_discount_amount = price_after_discount * (day_discount_percent / 100)
+
+    # Фінальна сума з урахуванням знижок та знижки дня
+    total_discount = max_discount + day_discount_amount
+    final_price = total_price - total_discount
+    # Додаємо поле discount (поки 0) для кожного товару (можна деталізувати, якщо потрібно)
+    for item in cart_summary:
+        item['discount'] = 0
+
+    return {
+        'cart': cart_summary,
+        "cart": some_cart_data,
+        "total": some_total,
+        'total_price': final_price,
+        'total_discount': total_discount,
+        'free_shipping': free_shipping,
+        'day_discount_amount': day_discount_amount
+    }
+
 @dp.callback_query_handler(lambda c: c.data == "show_cart")
 async def show_cart_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     cart = user_carts.get(user_id, [])
     if not cart:
-        await callback.message.answer("🛒 Ваш кошик порожній.", reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]))
+        await callback.message.answer(
+            "🛒 Ваш кошик порожній.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")]]
+            )
+        )
+        await callback.answer()
         return
+    day_discount_percent = 20
+    result = calculate_cart(cart, day_discount_percent=0)  # Задай day_discount_percent за потребою
 
-    cart = apply_third_item_discount(cart)
-    counted = {}
-    total = 0
-    for item in cart:
-        name = item['name']
-        if name not in counted:
-            counted[name] = {'count': 1, 'price': item['price']}
-        else:
-            counted[name]['count'] += 1
-            counted[name]['price'] += item['price']
-        total += item['price']
+    cart_summary = result['cart']
+    total_price = result['total_price']
+    free_shipping_flag = result['free_shipping']
+    day_discount_amount = result['day_discount_amount']
+    total_discount = result['total_discount']
 
-    text = "*Ваш кошик:*"
+    text = "*Ваш кошик:*\n"
     i = 1
-    for name, data in counted.items():
-        text += f"{i}. {name} — {data['count']} шт. x {round(data['price'] / data['count'])} грн = {data['price']} грн"
+    for item in cart_summary:
+        unit_price = item['price']
+        count = item['quantity']
+        line_price = unit_price * count
+        text += f"{i}. {item['name']} — {count} шт. x {unit_price} грн = {line_price} грн\n"
         i += 1
 
-    discount = user_discounts.get(user_id, 0)
-    final_price = total - discount
-    text += f"💵 Сума без знижок: {total} грн"
-    if discount:
-        text += f"🎁 Знижка: {discount} грн"
-        text += f"✅ До сплати: {final_price} грн"
+    text += f"\n💵 Сума без знижок: {sum(item['price'] * item['quantity'] for item in cart_summary)} грн\n"
+    if day_discount_amount > 0:
+        text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
+    text += f"🎁 Загальна знижка: {round(total_discount)} грн\n"
+    text += f"✅ До сплати: {round(total_price)} грн\n"
+    if free_shipping_flag:
+        text += "🚚 У вас безкоштовна доставка!\n"
 
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
+    buttons = InlineKeyboardMarkup(row_width=2)
+    for item in cart_summary:
+        buttons.add(
+            InlineKeyboardButton(f"➕ {item['name']}", callback_data=f"increase_{item['name']}"),
+            InlineKeyboardButton(f"➖ {item['name']}", callback_data=f"decrease_{item['name']}")
+        )
+    buttons.add(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
-        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart"),
-        InlineKeyboardButton("🔙 Повернення", callback_data="main_menu")
+        InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
     )
-    await callback.message.answer(text, reply_markup=keyboard)
+
+    await callback.message.answer(text, reply_markup=buttons)
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("increase_"))
 async def increase_item_quantity(callback: types.CallbackQuery):
     name = callback.data.replace("increase_", "")
     user_id = callback.from_user.id
-    user_carts.setdefault(user_id, []).append({"name": name, "price": 200})
+    cart = user_carts.setdefault(user_id, [])
+    for item in cart:
+        if item["name"] == name:
+            item["quantity"] += 1
+            break
+    else:
+        cart.append({"name": name, "price": 200, "quantity": 1})  # або дізнайся справжню ціну
     await show_cart_callback(callback)
-
+  
 @dp.callback_query_handler(lambda c: c.data.startswith("decrease_"))
 async def decrease_item_quantity(callback: types.CallbackQuery):
     name = callback.data.replace("decrease_", "")
@@ -409,7 +421,9 @@ async def decrease_item_quantity(callback: types.CallbackQuery):
     cart = user_carts.get(user_id, [])
     for i, item in enumerate(cart):
         if item["name"] == name:
-            cart.pop(i)
+            item["quantity"] -= 1
+            if item["quantity"] <= 0:
+                cart.pop(i)
             break
     await show_cart_callback(callback)
 
@@ -569,15 +583,12 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     else:
         address_or_post = message.text
 
-    await state.update_data(address_or_post=address_or_post)
-
-
-  
+    await OrderStates.next()
     # Формування та відображення замовлення
     data = await state.get_data()
     user_id = message.from_user.id
     cart = user_carts.get(user_id, [])
-    cart = apply_third_item_discount(cart)
+  
 
     text_items = ""
     total = 0
@@ -609,22 +620,22 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(state=OrderStates.confirmation)
-async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
-    if callback.data == "confirm_order":
-        data = await state.get_data()
+async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    user_id = callback.from_user.id
 
+    if callback.data == "confirm_order":
+        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
-        name = data['name']
-        phone = data['phone']
-        city = data['city']
-        delivery_type = data.get('post_service', 'Адреса') if data['delivery_type'] == 'delivery_post' else 'Адреса'
+        name = data.get('name', '-')
+        phone = data.get('phone', '-')
+        city = data.get('city', '-')
+        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
         address = data.get('address_or_post', '-')
-        user_id = callback.from_user.id
 
         cart_items = user_carts.get(user_id, [])
-        cart_items = apply_third_item_discount(cart_items)
         order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
         total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
         discount = user_discounts.get(user_id, 0)
@@ -647,17 +658,16 @@ async def confirm_order(callback: types.CallbackQuery, state: FSMContext):
 
         await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
-    else:
+
+    elif callback.data == "cancel_order":
+        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
         await callback.message.answer("❌ Замовлення скасовано.")
+
+    else:
+        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
+
     await state.finish()
     await callback.answer()
-
-
-
-@dp.callback_query_handler(lambda c: c.data == "cancel_order", state=OrderStates.confirmation)
-async def cancel_order(callback: types.CallbackQuery, state: FSMContext):
-    await bot.send_message(callback.from_user.id, "❌ Замовлення скасовано.")
-    await state.finish()
 
 
 @dp.message_handler(commands=["start"])
@@ -667,10 +677,10 @@ async def handle_start(message: types.Message):
         photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
         caption=(
             "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-            "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
-            "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-            "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
-            "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
+            "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
+            "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n\n"
+            "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n\n"
+            "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
             "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
         ),
         reply_markup=main_menu
@@ -682,12 +692,12 @@ async def auto_start_from_any_message(message: types.Message):
         chat_id=message.chat.id,
         photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
         caption=(
-           "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-            "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
-            "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-            "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
-            "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
-            "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
+            "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
+        "🌺 У нашому магазині ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n"
+        "💸 Ми пропонуємо найкращі ціни та щедрі знижки для нових і постійних клієнтів.\n"
+        "🎁 Усі покупці можуть скористатися акціями та отримати приємні подарунки.\n"
+        "🚚 Доставка по всій Україні. Безкоштовна — при замовленні від 500 грн.\n\n"
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
         ),
         reply_markup=main_menu
     )
@@ -703,8 +713,7 @@ async def track_pending_orders(message: types.Message):
 
             if chat_id.isdigit() and ttn and not status:
                 await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                logging.info(f"Оновлюю рядок {i}, колонка 13, ставлю '✅ надіслано'")
-                sheet.update(f'M{i}', "✅ надіслано")
+                sheet.update_cell(i, 13, "Надіслано")
                 await asyncio.sleep(1)
 
         except Exception as e:
@@ -738,4 +747,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
+
 
