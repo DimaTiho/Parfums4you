@@ -99,7 +99,7 @@ async def back_to_main(callback: types.CallbackQuery):
 main_menu_buttons = [
     [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
     [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
-    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order"), InlineKeyboardButton("💬Відгуки", callback_data="reviews")],
+    [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
     [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
@@ -280,6 +280,8 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
 user_carts = {}  # Словник користувачів з їхніми кошиками
 
 def calculate_cart(cart, day_discount_percent=0):
+     if not cart:
+         return {"cart": [], "total": 0}
     # Підрахунок кількості кожного товару
     counts = Counter(item['name'] for item in cart)
     prices = {item['name']: item['price'] for item in cart}
@@ -378,6 +380,8 @@ async def open_cart_handler(callback: types.CallbackQuery):
 
     return {
         'cart': cart_summary,
+        "cart": some_cart_data,
+        "total": some_total,
         'total_price': final_price,
         'total_discount': total_discount,
         'free_shipping': free_shipping,
