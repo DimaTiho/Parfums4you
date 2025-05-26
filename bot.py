@@ -9,6 +9,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from collections import Counter
+from collections import defaultdict
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -271,7 +272,7 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
             break
     else:
         # Якщо товару нема — додаємо з quantity=1
-        user_carts[user_id].append({"name": perfume_name, "price": 200"quantity": 1})
+        user_carts[user_id].append({"name": perfume_name, "price": 200,"quantity": 1})
 
     buttons = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -287,10 +288,13 @@ async def add_to_cart_callback(callback: types.CallbackQuery):
     await callback.answer()
 
 def calculate_cart(cart, day_discount_percent=0):
-     
-    # Підрахунок кількості кожного товару
-    counts = Counter(item['name'] for item in cart)
-    prices = {item['name']: item['price'] for item in cart}
+    # Підрахунок кількості кожного товару і ціни
+    counts = defaultdict(int)
+    prices = {}
+
+    for item in cart:
+        counts[item['name']] += item.get('quantity', 1)  # якщо quantity немає — вважати 1
+        prices[item['name']] = item['price']
 
     cart_summary = []
     for name, count in counts.items():
@@ -301,6 +305,24 @@ def calculate_cart(cart, day_discount_percent=0):
         })
 
     total_price = sum(item['price'] * item['quantity'] for item in cart_summary)
+
+    # Обчислення знижки дня (якщо застосовуємо)
+    day_discount_amount = total_price * day_discount_percent / 100 if day_discount_percent else 0
+
+    # Загальна сума після знижки
+    total_price_after_discount = total_price - day_discount_amount
+
+    # Логіка безкоштовної доставки (припустимо, від 1000 грн)
+    free_shipping = total_price_after_discount >= 600
+
+    # Повертаємо результат у вигляді словника
+    return {
+        'cart': cart_summary,
+        'total_price': total_price_after_discount,
+        'free_shipping': free_shipping,
+        'day_discount_amount': day_discount_amount,
+        'total_discount': day_discount_amount  # тут можна додати інші знижки пізніше
+    }
 
     # Акції:
 
