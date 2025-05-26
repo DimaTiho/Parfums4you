@@ -17,13 +17,13 @@ perfumes = {
         {
             'id': 'f1',
             'name': 'Парфум Жіночий 1',
-            'photo': 'https://via.placeholder.com/150?text=Жіночий+1',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
         {
             'id': 'f2',
             'name': 'Парфум Жіночий 2',
-            'photo': 'https://via.placeholder.com/150?text=Жіночий+2',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
     ],
@@ -31,13 +31,13 @@ perfumes = {
         {
             'id': 'u1',
             'name': 'Парфум Унісекс 1',
-            'photo': 'https://via.placeholder.com/150?text=Унісекс+1',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
         {
             'id': 'u2',
             'name': 'Парфум Унісекс 2',
-            'photo': 'https://via.placeholder.com/150?text=Унісекс+2',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
     ],
@@ -45,13 +45,13 @@ perfumes = {
         {
             'id': 't1',
             'name': 'ТОП Парфум 1',
-            'photo': 'https://via.placeholder.com/150?text=ТОП+1',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
         {
             'id': 't2',
             'name': 'ТОП Парфум 2',
-            'photo': 'https://via.placeholder.com/150?text=ТОП+2',
+            'photo': 'https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.',
             'price': 200
         },
     ]
@@ -100,7 +100,7 @@ async def send_main_menu(message_or_callback):
         "Вітаємо у нашому магазині парфумів!\n"
         "Обирайте категорію або дійте за меню."
     )
-    main_photo_url = "https://via.placeholder.com/400x200?text=Головне+Меню+Парфумів"
+    main_photo_url = "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA."
 
     if isinstance(message_or_callback, types.Message):
         await bot.send_photo(
@@ -411,16 +411,22 @@ async def finish_order(message: types.Message, state: FSMContext):
 
     await message.answer(order_text, parse_mode="HTML")
     
-    # Запис до Google Sheets
-    sheet.append_row([
-        message.from_user.id,
-        data.get('full_name'),
-        data.get('phone'),
-        data.get('city'),
-        data.get('delivery_type'),
-        data.get('address') or f"{data.get('post_service')} №{data.get('post_number')}",
-        str(total)
-    ], table_range=SHEET_NAME)
+    # Запис у Google Sheets
+    append_order_to_sheet([
+        date,
+        time,
+        name,
+        phone,
+        city,
+        delivery_type_label,
+        delivery_info,
+        order_description,
+        total_sum,
+        discount,
+        str(chat_id),
+        "",
+        ""
+    ])
 
     clear_cart(message.from_user.id)
     await state.finish()
