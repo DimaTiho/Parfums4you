@@ -424,7 +424,7 @@ async def show_cart_callback(callback: types.CallbackQuery):
         )
     buttons.add(
         InlineKeyboardButton("🧾 Оформити замовлення", callback_data="checkout"),
-        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart")
+        InlineKeyboardButton("🧹 Очистити кошик", callback_data="clear_cart"),
         InlineKeyboardButton("🔙 Повернення", callback_data="catalog"),
     )
 
