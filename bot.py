@@ -306,7 +306,7 @@ def calculate_cart(cart):
     # 3. 20% від 5 од.
     discount_20 = 0
     if normal_total_items >= 5:
-        discount_20 = total_price_normal * 0.3
+        discount_20 = total_price_normal * 0.2
 
     # 4. 1+1 -30%
     discount_bogo = 0
@@ -606,7 +606,6 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"💵 *Сума без знижок:* {sum(i['price'] * i['quantity'] for i in result['cart'])} грн\n"
         f"🎁 *Знижка:* {round(result['total_discount'])} грн\n"
         f"✅ *До сплати:* {round(result['total_price'])} грн"
-    )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
@@ -616,60 +615,56 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     await OrderStates.confirmation.set()
 
 
-
 @dp.callback_query_handler(state=OrderStates.confirmation)
 async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_id = callback.from_user.id
 
     if callback.data == "confirm_order":
+        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
         name = data.get('name', '-')
         phone = data.get('phone', '-')
         city = data.get('city', '-')
-        delivery_method = data.get('delivery_type', '-')
+        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
         address = data.get('address_or_post', '-')
-        delivery_service = data.get('post_service', '-') if delivery_method == 'delivery_post' else 'Кур’єр'
 
         cart_items = user_carts.get(user_id, [])
-        result = calculate_cart(cart_items)
+        order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
+        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
+        discount = user_discounts.get(user_id, 0)
+        final_price = total_sum - discount
 
-        # Текстове представлення товарів
-        order_description = "; ".join([f"{item['name']} x{item['quantity']} ({item['price']} грн)" for item in result['cart']])
-        total_sum = sum([item['price'] * item['quantity'] for item in result['cart']])
-        total_discount = round(result['total_discount'] + result['day_discount_amount'], 2)
-        final_price = round(result['total_price'], 2)
-        shipping_type = "Безкоштовна" if result['free_shipping'] else "Одержувач оплачує"
-
-        # Оновлення Google Sheet
         sheet.append_row([
             date,
             time,
             name,
             phone,
             city,
-            delivery_service,
+            delivery_type,
             address,
             order_description,
             total_sum,
-            total_discount,
-            final_price,
-            shipping_type,
-            str(user_id),
-            "",  # Номер ТТН
-            ""   # Підтвердження доставки
+            discount,
+            user_id,
+            ""
         ])
 
-        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте повідомлення з номером ТТН після відправки.")
+        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
 
     elif callback.data == "cancel_order":
+        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
         await callback.message.answer("❌ Замовлення скасовано.")
+
+    else:
+        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
 
     await state.finish()
     await callback.answer()
+
 
 @dp.message_handler(commands=["start"])
 async def handle_start(message: types.Message):
@@ -708,13 +703,13 @@ async def track_pending_orders(message: types.Message):
     all_data = sheet.get_all_values()
     for i, row in enumerate(all_data[1:], start=2):  # пропускаємо заголовок
         try:
-            chat_id = row[10].strip() if len(row) > 13 else ""
-            ttn = row[11].strip() if len(row) > 14 else ""
-            status = row[12].strip() if len(row) > 15 else ""
+            chat_id = row[10].strip() if len(row) > 10 else ""
+            ttn = row[11].strip() if len(row) > 11 else ""
+            status = row[12].strip() if len(row) > 12 else ""
 
             if chat_id.isdigit() and ttn and not status:
                 await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                sheet.update_cell(i, 16, "Надіслано")
+                sheet.update_cell(i, 13, "Надіслано")
                 await asyncio.sleep(1)
 
         except Exception as e:
@@ -748,3 +743,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
+
+
