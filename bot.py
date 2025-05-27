@@ -735,8 +735,7 @@ async def check_new_ttns():
             try:
                 client_id = int(row['ID клієнта'])
                 ttn_number = row['Номер ТТН']
-                await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!
-Номер ТТН: `{ttn_number}`")
+                await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!Номер ТТН: `{ttn_number}`")
                 sheet.update_cell(i, 15, "✅")
             except Exception:
                 sheet.update_cell(i, 15, "❌")
