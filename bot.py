@@ -10,7 +10,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from collections import Counter
 from collections import defaultdict
-from aiogram.types import CallbackQuery
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -211,7 +210,7 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     "quantity": 1,
     "discount_applied": True  # ❗️ новий прапор
 })
-    await callback.answer("✅ Додано до кошика зі знижкою!")
+     await callback.answer("✅ Додано до кошика зі знижкою!")
 
 # Блок: Акції та бонуси
 @dp.callback_query_handler(lambda c: c.data == "promotions")
@@ -261,40 +260,7 @@ async def promo_conditions(call: types.CallbackQuery):
     }
     await call.message.answer(conditions[call.data])
     await call.answer()
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith('discount_'))
-async def add_discounted_item_to_cart(callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    product_name = callback_query.data[len('discount_'):]
-    
-    p = daily_discount  # глобальна змінна з інформацією про знижку дня
-    discounted_price = int(p['price'] * 0.85)
 
-    if user_id not in user_carts:
-        user_carts[user_id] = {"items": [], "discounts": []}
-    cart = user_carts[user_id]
-
-    # Перевірка, чи товар зі знижкою дня вже в кошику
-    if any(item.get("discount_applied") and item["name"] == p['name'] for item in cart["items"]):
-        await callback_query.answer("Цей товар зі знижкою вже у кошику.")
-        return
-
-    # Додаємо товар зі знижкою в кошик
-    cart['items'].append({
-        "name": p['name'],
-        "price": discounted_price,
-        "photo": p['photo'],
-        "discount_applied": True
-    })
-
-    # Переконуємося, що "Безкоштовна доставка" залишилась, якщо вона була
-    # Інші акції не видаляємо і не змінюємо
-
-    await callback_query.answer("Товар зі знижкою додано в кошик!")
-    await callback_query.message.answer(
-        f"Товар *{p['name']}* додано в кошик зі знижкою 15%!\n"
-        f"Ціна: {discounted_price} грн.",
-        parse_mode="Markdown"
-    )
 
 def calculate_cart(cart, day_discount_percent=0):
     # Підрахунок кількості кожного товару і ціни
@@ -647,26 +613,40 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
   
 
     text_items = ""
-    total = 0
-    for i, item in enumerate(cart, 1):
-        text_items += f"{i}. {escape_md(item['name'])} — {item['price']} грн\n"
-        total += item['price']
+  # Переконайся, що ці дані коректні і актуальні:
+print(f"cart: {cart}")
+print(f"discount: {discount}")
 
-    discount = user_discounts.get(user_id, 0)
-    final = total - discount
+# Перевір типи для підрахунку:
+total = 0
+for item in cart:
+    try:
+        price = float(item['price'])
+    except (ValueError, TypeError):
+        price = 0
+    total += price
 
-    order_summary = (
-        f"📦 *Перевірте замовлення перед підтвердженням:*\n"
-        f"👤 *ПІБ:* {escape_md(data['name'])}\n"
-        f"📞 *Телефон:* {escape_md(data['phone'])}\n"
-        f"🏙 *Місто:* {escape_md(data['city'])}\n"
-        f"📍 *Адреса / Відділення:* {escape_md(data['address_or_post'])}\n"
-        f"🛍 *Товари в кошику:*\n{text_items}"
-        f"💵 *Сума без знижок:* {total} грн\n"
-        f"🎁 *Знижка:* {discount} грн\n"
-        f"✅ *До сплати:* {final} грн"
-    )
-    keyboard = InlineKeyboardMarkup(row_width=2)
+try:
+    discount = float(discount)
+except (ValueError, TypeError):
+    discount = 0
+
+final = total - discount
+if final < 0:
+    final = 0  # щоб не було від’ємної суми
+
+# Формування тексту замовлення:
+order_summary = (
+    f"📦 *Перевірте замовлення перед підтвердженням:*\n"
+    f"👤 *ПІБ:* {escape_md(data.get('name', ''))}\n"
+    f"📞 *Телефон:* {escape_md(data.get('phone', ''))}\n"
+    f"🏙 *Місто:* {escape_md(data.get('city', ''))}\n"
+    f"📍 *Адреса / Відділення:* {escape_md(data.get('address_or_post', ''))}\n"
+    f"🛍 *Товари в кошику:*\n{text_items}"
+    f"💵 *Сума без знижок:* {total:.2f} грн\n"
+    f"🎁 *Знижка:* {discount:.2f} грн\n"
+    f"✅ *До сплати:* {final:.2f} грн"
+)yboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
         InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
@@ -803,6 +783,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
-
 
 
