@@ -306,7 +306,7 @@ def calculate_cart(cart):
     # 3. 20% від 5 од.
     discount_20 = 0
     if normal_total_items >= 5:
-        discount_20 = total_price_normal * 0.2
+        discount_20 = total_price_normal * 0.3
 
     # 4. 1+1 -30%
     discount_bogo = 0
@@ -748,5 +748,3 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
-
-
