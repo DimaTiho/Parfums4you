@@ -671,17 +671,6 @@ async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMCon
     await state.finish()
     await callback.answer()
 
-    elif callback.data == "cancel_order":
-        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
-        await callback.message.answer("❌ Замовлення скасовано.")
-
-    else:
-        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
-
-    await state.finish()
-    await callback.answer()
-
-
 @dp.message_handler(commands=["start"])
 async def handle_start(message: types.Message):
     await bot.send_photo(
