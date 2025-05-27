@@ -606,6 +606,7 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"💵 *Сума без знижок:* {sum(i['price'] * i['quantity'] for i in result['cart'])} грн\n"
         f"🎁 *Знижка:* {round(result['total_discount'])} грн\n"
         f"✅ *До сплати:* {round(result['total_price'])} грн"
+    )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
