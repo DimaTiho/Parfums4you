@@ -10,6 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from collections import Counter
 from collections import defaultdict
+from aiogram.types import CallbackQuery
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
