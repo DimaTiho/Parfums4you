@@ -708,40 +708,22 @@ async def auto_start_from_any_message(message: types.Message):
         reply_markup=main_menu
     )
 
-@dp.message_handler(commands=["track_ttns"])
-async def track_pending_orders(message: types.Message):
-    all_data = sheet.get_all_values()
-    for i, row in enumerate(all_data[1:], start=2):  # пропускаємо заголовок
-        try:
-            chat_id = row[10].strip() if len(row) > 10 else ""
-            ttn = row[11].strip() if len(row) > 11 else ""
-            status = row[12].strip() if len(row) > 12 else ""
-
-            if chat_id.isdigit() and ttn and not status:
-                await bot.send_message(int(chat_id), f"📦 Ваше замовлення надіслано!Номер накладної: *{ttn}*")
-                sheet.update_cell(i, 13, "Надіслано")
-                await asyncio.sleep(1)
-
-        except Exception as e:
-            logging.error(f"❌ Помилка в рядку {i}: {e}")
-
-sent_ttns = set()
-
-
 async def check_new_ttns():
-    records = sheet.get_all_records()
-    for i, row in enumerate(records, start=2):
-        if row['Номер ТТН'] and row['Підтвердження доставки'] == "":
-            try:
-                client_id = int(row['ID клієнта'])
-                ttn_number = row['Номер ТТН']
-                await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!Номер ТТН: `{ttn_number}`")
-                sheet.update_cell(i, 15, "✅")
-            except Exception:
-                sheet.update_cell(i, 15, "❌")
-
+    try:
+        records = sheet.get_all_records()
+        for i, row in enumerate(records, start=2):
+            if row['Номер ТТН'] and row['Підтвердження доставки'] == "":
+                try:
+                    client_id = int(row['ID клієнта'])
+                    ttn_number = row['Номер ТТН']
+                    await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!\nНомер ТТН: `{ttn_number}`")
+                    sheet.update_cell(i, 15, "✅")
+                except Exception as e:
+                    logging.exception("Помилка надсилання ТТН клієнту")
+                    sheet.update_cell(i, 15, "❌")
+    except Exception as e:
+        logging.exception("Помилка при перевірці ТТН:")
         await asyncio.sleep(30)
-
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
