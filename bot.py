@@ -210,7 +210,7 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
     "quantity": 1,
     "discount_applied": True  # ❗️ новий прапор
 })
-     await callback.answer("✅ Додано до кошика зі знижкою!")
+        await callback.answer("✅ Додано до кошика зі знижкою!")
 
 # Блок: Акції та бонуси
 @dp.callback_query_handler(lambda c: c.data == "promotions")
