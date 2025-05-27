@@ -654,7 +654,7 @@ async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMCon
 
         cart_items = user_carts.get(user_id, [])
         order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
-        total_sum = {sum(item['price'] * item['quantity'] for item in cart_summary)} грн\n"
+        total_sum = {sum(item['price'] * item['quantity'] for item in cart_summary)}
     if day_discount_amount > 0:
         text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
         discount = (total_discount)(user_id, 0)
