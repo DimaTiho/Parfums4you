@@ -26,6 +26,16 @@ creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope
 client = gspread.authorize(creds)
 workbook = client.open(GOOGLE_SHEET_NAME)
 sheet = workbook.sheet1
+
+sheet_header = [
+    "Дата", "Час", "Ім’я", "Телефон", "Місто", "Тип доставки", "Адреса / Відділення",
+    "Замовлення", "Загальна сума", "Знижка", "Суми", "Оплата",
+    "ID клієнта", "Номер ТТН", "Підтвердження доставки"
+]
+if sheet.row_values(1) != sheet_header:
+    sheet.update("A1", [sheet_header])
+
+
 try:
     analytics_sheet = workbook.worksheet("Аналітика")
 except:
@@ -130,17 +140,25 @@ perfume_catalog = {
 }
 
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
+
+@dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 async def handle_category(callback: types.CallbackQuery):
     perfumes = perfume_catalog.get(callback.data, [])
-    for p in perfumes:
-        buttons = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton("➕ Додати до кошика", callback_data=f"add_{p['name']}"), InlineKeyboardButton("🔙 Повернення", callback_data="catalog")],
-    [InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"), InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]
-])
-
-        await bot.send_photo(callback.from_user.id, p['photo'], caption=f"*{p['name']}*\n💸 {p['price']} грн", reply_markup=buttons)
+    for i in range(0, len(perfumes), 2):
+        row = perfumes[i:i+2]
+        media = []
+        buttons = []
+        for p in row:
+            text = f"*{p['name']}*\n💸 {p['price']} грн"
+            media.append((p['photo'], text))
+            buttons.append(InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{p['name']}"))
+        for m in media:
+            await bot.send_photo(callback.from_user.id, m[0], caption=m[1])
+        await bot.send_message(callback.from_user.id, "Оберіть:", reply_markup=InlineKeyboardMarkup(row_width=2).add(*buttons).add(
+            InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"),
+            InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
+        ))
     await callback.answer()
-
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await bot.send_message(callback.from_user.id, "Оберіть категорію парфумів:", reply_markup=catalog_menu)
@@ -434,7 +452,7 @@ async def clear_cart_callback(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "checkout")
 async def checkout_handler(callback: types.CallbackQuery):
-    await callback.message.answer("✍️ Введіть ваше *ПІБ* для оформлення замовлення:")
+    await callback.message.answer("✍️ Введіть ваше *ПІБ* для оформлення замовлення:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")]]))
     await OrderStates.name.set()
     await callback.answer()
 
@@ -616,60 +634,56 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     await OrderStates.confirmation.set()
 
 
-
-# Це повний модуль для Google Sheets логіки: замовлення, доставка, підтвердження ТТН
-
 @dp.callback_query_handler(state=OrderStates.confirmation)
 async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_id = callback.from_user.id
 
     if callback.data == "confirm_order":
+        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
         name = data.get('name', '-')
         phone = data.get('phone', '-')
         city = data.get('city', '-')
-        delivery_method = data.get('delivery_type', '-')
+        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
         address = data.get('address_or_post', '-')
-        delivery_service = data.get('post_service', '-') if delivery_method == 'delivery_post' else 'Кур’єр'
 
         cart_items = user_carts.get(user_id, [])
-        result = calculate_cart(cart_items)
-
-        order_description = "; ".join([f"{item['name']} x{item['quantity']} ({item['price']} грн)" for item in result['cart']])
-        total_sum = sum([item['price'] * item['quantity'] for item in result['cart']])
-        total_discount = round(result['total_discount'] + result['day_discount_amount'], 2)
-        final_price = round(result['total_price'], 2)
-        shipping_payment = "Безкоштовна" if result['free_shipping'] else "Одержувач оплачує"
+        order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
+        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
+        discount = user_discounts.get(user_id, 0)
+        final_price = total_sum - discount
 
         sheet.append_row([
-            date,                  # 1. Дата
-            time,                  # 2. Час
-            name,                  # 3. Ім’я
-            phone,                 # 4. Телефон
-            city,                  # 5. Місто
-            delivery_service,      # 6. Тип доставки
-            address,               # 7. Адреса / Відділення
-            order_description,     # 8. Замовлення
-            total_sum,             # 9. Загальна сума
-            total_discount,        #10. Знижка
-            final_price,           #11. Суми (до сплати)
-            shipping_payment,      #12. Оплата доставки
-            str(user_id),          #13. ID клієнта
-            "",                    #14. Номер ТТН
-            ""                     #15. Підтвердження доставки
+            date,
+            time,
+            name,
+            phone,
+            city,
+            delivery_type,
+            address,
+            order_description,
+            total_sum,
+            discount,
+            user_id,
+            ""
         ])
 
-        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте повідомлення з номером ТТН після відправки.")
+        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
 
     elif callback.data == "cancel_order":
+        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
         await callback.message.answer("❌ Замовлення скасовано.")
+
+    else:
+        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
 
     await state.finish()
     await callback.answer()
+
 
 @dp.message_handler(commands=["start"])
 async def handle_start(message: types.Message):
@@ -723,17 +737,25 @@ async def track_pending_orders(message: types.Message):
 sent_ttns = set()
 
 async def check_new_ttns():
-    records = sheet.get_all_records()
-    for i, row in enumerate(records, start=2):
-        if row['Номер ТТН'] and row['Підтвердження доставки'] == "":
-            try:
-                client_id = int(row['ID клієнта'])
-                ttn_number = row['Номер ТТН']
-                await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!Номер ТТН: `{ttn_number}`")
-                sheet.update_cell(i, 15, "✅")
-            except Exception as e:
-                sheet.update_cell(i, 15, "❌")
-                await asyncio.sleep(30)
+    while True:
+        try:
+            all_rows = sheet.get_all_values()
+            header = all_rows[0]
+            ttn_index = header.index("Номер ТТН")
+            chat_id_index = header.index("Chat ID")
+
+            for row in all_rows[1:]:
+                if len(row) > max(ttn_index, chat_id_index):
+                    ttn = row[ttn_index].strip()
+                    chat_id = row[chat_id_index].strip()
+                    if ttn and chat_id and ttn not in sent_ttns:
+                        await bot.send_message(int(chat_id), f"📦 Ваше замовлення відправлено! Ось номер ТТН: *{ttn}*")
+                        sent_ttns.add(ttn)
+
+        except Exception as e:
+            logging.error(f"Помилка при перевірці ТТН: {e}")
+
+        await asyncio.sleep(30)
 
 
 if __name__ == '__main__':
