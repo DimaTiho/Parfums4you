@@ -733,10 +733,7 @@ async def check_new_ttns():
                 sheet.update_cell(i, 15, "✅")
             except Exception as e:
                 sheet.update_cell(i, 15, "❌")
-        except Exception as e:
-            logging.error(f"Помилка при перевірці ТТН: {e}")
-
-        await asyncio.sleep(30)
+                await asyncio.sleep(30)
 
 
 if __name__ == '__main__':
