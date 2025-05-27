@@ -204,12 +204,7 @@ async def add_discount_to_cart(callback: types.CallbackQuery):
         await callback.answer("Помилка: товар не знайдено.")
         return
     discounted_price = int(perfume["price"] * 0.85)
-    user_carts.setdefault(user_id, []).append({
-    "name": name + " (зі знижкою)", 
-    "price": discounted_price, 
-    "quantity": 1,
-    "discount_applied": True  # ❗️ новий прапор
-})
+    user_carts.setdefault(user_id, []).append({"name": name + " (зі знижкою)", "price": discounted_price, "quantity": 1})
     await callback.answer("✅ Додано до кошика зі знижкою!")
 
 # Блок: Акції та бонуси
@@ -613,40 +608,25 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
   
 
     text_items = ""
-  # Переконайся, що ці дані коректні і актуальні:
-print(f"cart: {cart}")
-print(f"discount: {discount}")
+    total = 0
+    for i, item in enumerate(cart, 1):
+        text_items += f"{i}. {escape_md(item['name'])} — {item['price']} грн\n"
+        total += item['price']
 
-# Перевір типи для підрахунку:
-total = 0
-for item in cart:
-    try:
-        price = float(item['price'])
-    except (ValueError, TypeError):
-        price = 0
-    total += price
+    discount = user_discounts.get(user_id, 0)
+    final = total - discount
 
-try:
-    discount = float(discount)
-except (ValueError, TypeError):
-    discount = 0
-
-final = total - discount
-if final < 0:
-    final = 0  # щоб не було від’ємної суми
-
-# Формування тексту замовлення:
-order_summary = (
-    f"📦 *Перевірте замовлення перед підтвердженням:*\n"
-    f"👤 *ПІБ:* {escape_md(data.get('name', ''))}\n"
-    f"📞 *Телефон:* {escape_md(data.get('phone', ''))}\n"
-    f"🏙 *Місто:* {escape_md(data.get('city', ''))}\n"
-    f"📍 *Адреса / Відділення:* {escape_md(data.get('address_or_post', ''))}\n"
-    f"🛍 *Товари в кошику:*\n{text_items}"
-    f"💵 *Сума без знижок:* {total:.2f} грн\n"
-    f"🎁 *Знижка:* {discount:.2f} грн\n"
-    f"✅ *До сплати:* {final:.2f} грн"
-)
+    order_summary = (
+        f"📦 *Перевірте замовлення перед підтвердженням:*\n"
+        f"👤 *ПІБ:* {escape_md(data['name'])}\n"
+        f"📞 *Телефон:* {escape_md(data['phone'])}\n"
+        f"🏙 *Місто:* {escape_md(data['city'])}\n"
+        f"📍 *Адреса / Відділення:* {escape_md(data['address_or_post'])}\n"
+        f"🛍 *Товари в кошику:*\n{text_items}"
+        f"💵 *Сума без знижок:* {total} грн\n"
+        f"🎁 *Знижка:* {discount} грн\n"
+        f"✅ *До сплати:* {final} грн"
+    )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
@@ -784,3 +764,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
+
+
