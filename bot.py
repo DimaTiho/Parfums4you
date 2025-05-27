@@ -312,15 +312,6 @@ def calculate_cart(cart, day_discount_percent=0):
     # Логіка безкоштовної доставки (припустимо, від 1000 грн)
     free_shipping = total_price_after_discount >= 600
 
-    # Повертаємо результат у вигляді словника
-    return {
-        'cart': cart_summary,
-        'total_price': total_price_after_discount,
-        'free_shipping': free_shipping,
-        'day_discount_amount': day_discount_amount,
-        'total_discount': day_discount_amount  # тут можна додати інші знижки пізніше
-    }
-
     # Акції:
 
     # 1. Знижка на 3-й товар -50% на найменший третій товар
@@ -365,9 +356,7 @@ def calculate_cart(cart, day_discount_percent=0):
         item['discount'] = 0
 
     return {
-        'cart': cart_summary,
-        "cart": some_cart_data,
-        "total": some_total,
+        'cart': cart_summary,  
         'total_price': final_price,
         'total_discount': total_discount,
         'free_shipping': free_shipping,
