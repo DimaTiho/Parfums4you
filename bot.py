@@ -646,7 +646,8 @@ order_summary = (
     f"💵 *Сума без знижок:* {total:.2f} грн\n"
     f"🎁 *Знижка:* {discount:.2f} грн\n"
     f"✅ *До сплати:* {final:.2f} грн"
-)yboard = InlineKeyboardMarkup(row_width=2)
+)
+    keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
         InlineKeyboardButton("✅ Підтвердити", callback_data="confirm_order"),
         InlineKeyboardButton("❌ Скасувати", callback_data="cancel_order")
