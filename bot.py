@@ -640,46 +640,37 @@ async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMCon
     user_id = callback.from_user.id
 
     if callback.data == "confirm_order":
-        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
         name = data.get('name', '-')
         phone = data.get('phone', '-')
         city = data.get('city', '-')
-        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
+        delivery_method = data.get('delivery_type', '-')
         address = data.get('address_or_post', '-')
+        delivery_service = data.get('post_service', '-') if delivery_method == 'delivery_post' else 'Кур’єр'
 
         cart_items = user_carts.get(user_id, [])
-        order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
-        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
-        discount = user_discounts.get(user_id, 0)
-        final_price = total_sum - discount
+        result = calculate_cart(cart_items)
+
+        order_description = "; ".join([f"{item['name']} x{item['quantity']} ({item['price']} грн)" for item in result['cart']])
+        total_sum = sum([item['price'] * item['quantity'] for item in result['cart']])
+        total_discount = round(result['total_discount'] + result['day_discount_amount'], 2)
+        final_price = round(result['total_price'], 2)
+        shipping_payment = "Безкоштовна" if result['free_shipping'] else "Одержувач оплачує"
 
         sheet.append_row([
-            date,
-            time,
-            name,
-            phone,
-            city,
-            delivery_type,
-            address,
-            order_description,
-            total_sum,
-            discount,
-            user_id,
-            ""
+            date, time, name, phone, city,
+            delivery_service, address, order_description,
+            total_sum, total_discount, final_price,
+            shipping_payment, str(user_id), "", ""
         ])
 
-        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
+        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
 
     elif callback.data == "cancel_order":
-        print(f"User {user_id} скасував замовлення")  # Логування для перевірки
         await callback.message.answer("❌ Замовлення скасовано.")
-
-    else:
-        print(f"User {user_id} надіслав невідомий callback: {callback.data}")
 
     await state.finish()
     await callback.answer()
@@ -736,24 +727,19 @@ async def track_pending_orders(message: types.Message):
 
 sent_ttns = set()
 
+
 async def check_new_ttns():
-    while True:
-        try:
-            all_rows = sheet.get_all_values()
-            header = all_rows[0]
-            ttn_index = header.index("Номер ТТН")
-            chat_id_index = header.index("Chat ID")
-
-            for row in all_rows[1:]:
-                if len(row) > max(ttn_index, chat_id_index):
-                    ttn = row[ttn_index].strip()
-                    chat_id = row[chat_id_index].strip()
-                    if ttn and chat_id and ttn not in sent_ttns:
-                        await bot.send_message(int(chat_id), f"📦 Ваше замовлення відправлено! Ось номер ТТН: *{ttn}*")
-                        sent_ttns.add(ttn)
-
-        except Exception as e:
-            logging.error(f"Помилка при перевірці ТТН: {e}")
+    records = sheet.get_all_records()
+    for i, row in enumerate(records, start=2):
+        if row['Номер ТТН'] and row['Підтвердження доставки'] == "":
+            try:
+                client_id = int(row['ID клієнта'])
+                ttn_number = row['Номер ТТН']
+                await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!
+Номер ТТН: `{ttn_number}`")
+                sheet.update_cell(i, 15, "✅")
+            except Exception:
+                sheet.update_cell(i, 15, "❌")
 
         await asyncio.sleep(30)
 
