@@ -623,13 +623,9 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
         f"🏙 *Місто:* {escape_md(data['city'])}\n"
         f"📍 *Адреса / Відділення:* {escape_md(data['address_or_post'])}\n"
         f"🛍 *Товари в кошику:*\n{text_items}"
-         text += f"\n💵 Сума без знижок: {sum(item['price'] * item['quantity'] for item in cart_summary)} грн\n"
-    if day_discount_amount > 0:
-        text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
-    text += f"🎁 Загальна знижка: {round(total_discount)} грн\n"
-    text += f"✅ До сплати: {round(total_price)} грн\n"
-    if free_shipping_flag:
-        text += "🚚 У вас безкоштовна доставка!\n"
+        f"💵 *Сума без знижок:* {total} грн\n"
+        f"🎁 *Знижка:* {discount} грн\n"
+        f"✅ *До сплати:* {final} грн"
     )
     keyboard = InlineKeyboardMarkup(row_width=2)
     keyboard.add(
@@ -658,9 +654,11 @@ async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMCon
 
         cart_items = user_carts.get(user_id, [])
         order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
-        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
-        discount = user_discounts.get(user_id, 0)
-        final_price = total_sum - discount
+        total_sum = {sum(item['price'] * item['quantity'] for item in cart_summary)} грн\n"
+    if day_discount_amount > 0:
+        text += f"🎉 Знижка дня: {round(day_discount_amount)} грн\n"
+        discount = (total_discount)(user_id, 0)
+        final_price = (total_price)
 
         sheet.append_row([
             date,
