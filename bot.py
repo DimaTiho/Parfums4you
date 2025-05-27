@@ -616,45 +616,60 @@ async def get_address_or_post(message: types.Message, state: FSMContext):
     await OrderStates.confirmation.set()
 
 
+
 @dp.callback_query_handler(state=OrderStates.confirmation)
 async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_id = callback.from_user.id
 
     if callback.data == "confirm_order":
-        print(f"User {user_id} підтвердив замовлення")  # Логування для перевірки
         now = datetime.now()
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
         name = data.get('name', '-')
         phone = data.get('phone', '-')
         city = data.get('city', '-')
-        delivery_type = data.get('post_service', 'Адреса') if data.get('delivery_type') == 'delivery_post' else 'Адреса'
+        delivery_method = data.get('delivery_type', '-')
         address = data.get('address_or_post', '-')
+        delivery_service = data.get('post_service', '-') if delivery_method == 'delivery_post' else 'Кур’єр'
 
         cart_items = user_carts.get(user_id, [])
-        order_description = "; ".join([f"{item['name']} ({item['price']} грн)" for item in cart_items]) if cart_items else "-"
-        total_sum = sum([item['price'] for item in cart_items]) if cart_items else 0
-        discount = user_discounts.get(user_id, 0)
-        final_price = total_sum - discount
+        result = calculate_cart(cart_items)
 
+        # Текстове представлення товарів
+        order_description = "; ".join([f"{item['name']} x{item['quantity']} ({item['price']} грн)" for item in result['cart']])
+        total_sum = sum([item['price'] * item['quantity'] for item in result['cart']])
+        total_discount = round(result['total_discount'] + result['day_discount_amount'], 2)
+        final_price = round(result['total_price'], 2)
+        shipping_type = "Безкоштовна" if result['free_shipping'] else "Одержувач оплачує"
+
+        # Оновлення Google Sheet
         sheet.append_row([
             date,
             time,
             name,
             phone,
             city,
-            delivery_type,
+            delivery_service,
             address,
             order_description,
             total_sum,
-            discount,
-            user_id,
-            ""
+            total_discount,
+            final_price,
+            shipping_type,
+            str(user_id),
+            "",  # Номер ТТН
+            ""   # Підтвердження доставки
         ])
 
-        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте на повідомлення з номером ТТН після відправки.")
+        await callback.message.answer("🎉 Замовлення підтверджено! Очікуйте повідомлення з номером ТТН після відправки.")
         user_carts[user_id] = []
+
+    elif callback.data == "cancel_order":
+        await callback.message.answer("❌ Замовлення скасовано.")
+
+    await state.finish()
+    await callback.answer()
 
     elif callback.data == "cancel_order":
         print(f"User {user_id} скасував замовлення")  # Логування для перевірки
