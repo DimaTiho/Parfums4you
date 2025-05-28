@@ -718,16 +718,13 @@ async def check_new_ttns():
                     ttn_number = row['Номер ТТН']
                     await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!\nНомер ТТН: `{ttn_number}`")
                     sheet.update_cell(i, 15, "✅")
-                except Exception as e:
+    except Exception as e:
                     logging.exception("Помилка надсилання ТТН клієнту")
                     sheet.update_cell(i, 15, "❌")
-    except Exception as e:
-        logging.exception("Помилка при перевірці ТТН:")
-        await asyncio.sleep(30)
+  
+    await asyncio.sleep(30)  # кожні 30 секунд перевірка
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
-
-
