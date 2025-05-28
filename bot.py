@@ -114,7 +114,7 @@ main_menu_buttons = [
     [InlineKeyboardButton("📦Каталог парфум", callback_data="catalog"), InlineKeyboardButton("🔥Акції та бонуси", callback_data="promotions")],
     [InlineKeyboardButton("📉Знижка дня", callback_data="daily_discount")],
     [InlineKeyboardButton("ℹ️Як замовити?", callback_data="how_to_order")],
-    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/Dimanicer"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
+    [InlineKeyboardButton("✒️Зв'язатися з менеджером", url="https://t.me/parfum_vibes"), InlineKeyboardButton("🛒 Кошик", callback_data="show_cart")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu_buttons)
 
