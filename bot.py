@@ -9,6 +9,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from collections import Counter
+from gspread.utils import rowcol_to_a1
 from collections import defaultdict
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
@@ -710,20 +711,60 @@ async def auto_start_from_any_message(message: types.Message):
 
 async def check_new_ttns():
     try:
-        records = sheet.get_all_records()
-        for i, row in enumerate(records, start=2):
-            if row['Номер ТТН'] and row['Підтвердження доставки'] == "":
-                try:
-                    client_id = int(row['ID клієнта'])
-                    ttn_number = row['Номер ТТН']
-                    await bot.send_message(client_id, f"📦 Ваше замовлення відправлено!\nНомер ТТН: `{ttn_number}`")
-                    sheet.update_cell(i, 15, "✅")
-    except Exception as e:
-                    logging.exception("Помилка надсилання ТТН клієнту")
-                    sheet.update_cell(i, 15, "❌")
-  
-    await asyncio.sleep(30)  # кожні 30 секунд перевірка
+        data = sheet.get_all_values()
+        headers = data[0]
+        rows = data[1:]
 
+        tasks = []
+        updates = []
+
+        # Визначаємо індекси колонок
+        col_id = headers.index("ID клієнта")
+        col_ttn = headers.index("Номер ТТН")
+        col_confirm = headers.index("Підтвердження доставки")
+        confirm_col_number = col_confirm + 1  # бо нумерація з 1
+
+        for i, row in enumerate(rows, start=2):  # з рядка 2, бо 1 — заголовки
+            try:
+                ttn = row[col_ttn]
+                confirm = row[col_confirm]
+                if ttn and confirm == "":
+                    client_id = int(row[col_id])
+
+                    # Створюємо таск для надсилання
+                    async def notify(client_id=client_id, ttn=ttn, row_num=i):
+                        try:
+                            await bot.send_message(
+                                client_id,
+                                f"📦 Ваше замовлення відправлено!\nНомер ТТН: `{ttn}`"
+                            )
+                            updates.append(("✅", row_num))
+                        except Exception:
+                            logging.exception(f"Помилка надсилання ТТН клієнту ID {client_id}")
+                            updates.append(("❌", row_num))
+
+                    tasks.append(notify())
+
+            except Exception:
+                logging.exception(f"Помилка обробки рядка {i}")
+
+        # Паралельна відправка
+        await asyncio.gather(*tasks)
+
+        # Масове оновлення Google Sheets
+        if updates:
+            cell_updates = []
+            for value, row_num in updates:
+                cell = rowcol_to_a1(row_num, confirm_col_number)
+                cell_updates.append({'range': cell, 'values': [[value]]})
+            sheet.batch_update([{
+                'range': u['range'],
+                'values': u['values']
+            } for u in cell_updates])
+
+    except Exception:
+        logging.exception("Помилка при перевірці ТТН:")
+        await asyncio.sleep(30)
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.create_task(check_new_ttns())
