@@ -783,7 +783,12 @@ async def check_new_ttns():
     except Exception:
         logging.exception("Помилка при перевірці ТТН:")
         await asyncio.sleep(30)
+
+async def periodic_check_new_ttns(interval=60):
+    while True:
+        await check_new_ttns()
+        await asyncio.sleep(interval)
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    loop.create_task(check_new_ttns())
+    loop.create_task(periodic_check_new_ttns())
     executor.start_polling(dp, skip_updates=True)
