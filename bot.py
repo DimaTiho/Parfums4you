@@ -511,21 +511,25 @@ async def remove_from_cart(message: types.Message):
         await message.answer("❗ Введіть команду у форматі: Видалити 1")
 
 # === Оформлення замовлення ===
-
+@dp.callback_query_handler(lambda c: c.data == "main_menu", state="*")
+async def fsm_main_menu(callback: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+    await back_to_main(callback)
 
 @dp.message_handler(state=OrderStates.name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer("📞Введіть ваш *номер телефону*:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("🔙 Повернення", callback_data="back")]]))
+    keyboard = InlineKeyboardMarkup().add(InlineKeyboardButton("🏠 На головне меню", callback_data="main_menu"))
+    await message.answer("📞Введіть ваш *номер телефону*:", reply_markup=keyboard)
     await OrderStates.phone.set()
-
 @dp.message_handler(state=OrderStates.phone)
 async def get_phone(message: types.Message, state: FSMContext):
     if not message.text.isdigit() or len(message.text) != 10:
         await message.answer("❗ Номер телефону має містити 10 цифр без +38. Наприклад: 0931234567")
         return
     await state.update_data(phone=message.text)
-    await message.answer("🏙Введіть *місто доставки*:")
+    keyboard = InlineKeyboardMarkup().add(InlineKeyboardButton("🏠 На головне меню", callback_data="main_menu"))
+    await message.answer("🏙Введіть *місто доставки*:", reply_markup=keyboard)
     await OrderStates.next()
 
 
@@ -538,9 +542,9 @@ async def get_city(message: types.Message, state: FSMContext):
     keyboard.add(
         InlineKeyboardButton("На відділення", callback_data="delivery_post"),
         InlineKeyboardButton("Кур'єром на адресу", callback_data="delivery_address")
-    )
+    ).add(InlineKeyboardButton("🏠 На головне меню", callback_data="main_menu"))
     await message.answer("Оберіть *тип доставки*:", reply_markup=keyboard)
-
+    
 @dp.callback_query_handler(lambda c: c.data == "back", state=OrderStates.phone)
 async def back_to_name(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("Введіть ваше *ПІБ* для оформлення замовлення:")
@@ -579,7 +583,8 @@ async def get_delivery_type(callback: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda c: c.data in ["nova_post", "ukr_post"], state=OrderStates.post_service)
 async def get_post_service(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post_service=callback.data)
-    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):")
+    keyboard = InlineKeyboardMarkup().add(InlineKeyboardButton("🏠 На головне меню", callback_data="main_menu"))
+    await callback.message.answer("📮 Введіть *номер відділення або поштомату* (тільки цифри):", reply_markup=keyboard)
     await OrderStates.address_or_post.set()
     await callback.answer()
 
