@@ -202,6 +202,10 @@ perfume_catalog = {
         {"name": "Montale Fruity", "price": 200, "photo": "https://i.postimg.cc/3RVy5WGg/photo-2025-05-30-14-53-43-3.jpg.","quantity": 1},
         {"name": "Billie Eilish Eilish", "price": 200, "photo": "https://i.postimg.cc/Y2RV3g1G/photo-2025-05-30-14-53-44-3.jpg.","quantity": 1},
         {"name": "Labcome La Vie Est Belle", "price": 200, "photo": "https://i.postimg.cc/QdT0RWWq/photo-2025-05-30-14-53-44-6.jpg.","quantity": 1},
+        {"name": "Marc-Antoine Barrois Tilia","price": 200, "photo": "https://i.postimg.cc/ZnNxXGW5/photo-2025-05-30-14-53-44.jpg.","quantity": 1},
+        {"name": "Jean Paul Gaultier Scandal", "price": 200, "photo": "https://i.postimg.cc/P5WFCwr5/photo-2025-05-30-14-53-47-2.jpg.","quantity": 1},
+        {"name": "RicHard White Chocola", "price": 200, "photo": "https://i.postimg.cc/T1Wh0GpC/photo-2025-05-30-14-53-53-15.jpg.","quantity": 1},
+        {"name": "Kilian Angel`s Share", "price": 200, "photo": "https://i.postimg.cc/jS3tkmPf/photo-2025-05-30-14-53-43-6.jpg.","quantity": 1},
         {"name": "Escada Candy Love", "price": 200, "photo": "https://i.postimg.cc/XvV8z1Kw/photo-2025-05-30-14-53-53-21.jpg.","quantity": 1}
     ]
 }
