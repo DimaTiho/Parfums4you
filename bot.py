@@ -387,16 +387,19 @@ def calculate_cart(cart):
     if normal_total_items >= 5:
         discount_20 = total_price_normal * 0.2
 
-    # 4. 1+1 -30%
+    # 4. 1+1 -30% (перероблено на будь-які товари)
     discount_bogo = 0
+    all_unit_prices = []
     for item in normal_summary:
-        pairs = item['quantity'] // 2
-        discount_bogo += pairs * item['price'] * 0.3
+        all_unit_prices.extend([item['price']] * item['quantity'])
+    all_unit_prices.sort()
+    discount_bogo = sum(price * 0.3 for price in all_unit_prices[1::2])
 
     best_discount = max(discount_3rd, package_discount, discount_20, discount_bogo)
 
     final_normal_price = total_price_normal - best_discount
     final_total_price = final_normal_price + total_price_discount
+
 
     # Доставка
     free_shipping = final_total_price >= 600
