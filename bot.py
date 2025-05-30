@@ -11,6 +11,7 @@ from datetime import datetime
 from collections import Counter
 from gspread.utils import rowcol_to_a1
 from collections import defaultdict
+import urllib.parse  # додай на початку файлу
 import random
 from aiogram.utils.markdown import escape_md  # ✅ Додано для безпеки Markdown
 
@@ -213,10 +214,12 @@ perfume_catalog = {
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 async def handle_category(callback: types.CallbackQuery):
     perfumes = perfume_catalog.get(callback.data, [])
-        for p in row:
-             text = f"*{p['name']}*\n💸 {p['price']} грн"
+
+    for p in perfumes:
+        text = f"*{p['name']}*\n💸 {p['price']} грн"
+        encoded_name = urllib.parse.quote_plus(p['name'])
         buttons = InlineKeyboardMarkup(row_width=1).add(
-            InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{p['name']}"),
+            InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{encoded_name}"),
             InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"),
             InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
         )
