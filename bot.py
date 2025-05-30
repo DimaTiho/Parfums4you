@@ -139,7 +139,7 @@ perfume_catalog = {
         {"name": "Giorgio Armani Si Passione", "price": 200, "photo": "https://i.postimg.cc/pVBSV8rV/photo-2025-05-30-14-53-53-9.jpg.","quantity": 1},
         {"name": "Giorgio Armani My Way Nectar", "price": 200, "photo": "https://i.postimg.cc/L5z2hsqK/photo-2025-05-30-14-53-53-6.jpg.","quantity": 1},
         {"name": "Yves Saint Laurent Black Opium", "price": 200, "photo": "https://i.postimg.cc/pL3zMGt9/photo-2025-05-30-14-53-53-2.jpg.","quantity": 1},
-        {"name": "Yves Saint Laurent Libre", "price": 200, "https://i.postimg.cc/fRWDTDDp/photo-2025-05-30-14-53-53-7.jpg.","quantity": 1},
+        {"name": "Yves Saint Laurent Libre", "price": 200,  "photo": "https://i.postimg.cc/fRWDTDDp/photo-2025-05-30-14-53-53-7.jpg.","quantity": 1},
         {"name": "Yves Saint Laurent Mon Paris", "price": 200, "photo": "https://i.postimg.cc/3x8xq2qs/photo-2025-05-30-14-53-43-5.jpg.","quantity": 1},
         {"name": "Haute Fragrance Company Wear Love Everywhere", "price": 200, "photo": "https://i.postimg.cc/WbQQFVGX/photo-2025-05-30-14-53-46-5.jpg.","quantity": 1},
         {"name": "Haute Fragrance Company Devil`s Intrigue", "price": 200, "photo": "https://i.postimg.cc/9MLyKWX2/photo-2025-05-30-14-53-53-13.jpg.","quantity": 1},
