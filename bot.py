@@ -215,10 +215,6 @@ perfume_catalog = {
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 async def handle_category(callback: types.CallbackQuery):
     perfumes = perfume_catalog.get(callback.data, [])
-    for i in range(0, len(perfumes), 2):
-        row = perfumes[i:i+2]
-        media = []
-        buttons = []
         for p in row:
             text = f"*{p['name']}*\n💸 {p['price']} грн"
             media.append((p['photo'], text))
