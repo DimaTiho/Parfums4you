@@ -211,21 +211,20 @@ perfume_catalog = {
 }
 
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
-
-@dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 async def handle_category(callback: types.CallbackQuery):
     perfumes = perfume_catalog.get(callback.data, [])
-        for p in row:
-            text = f"*{p['name']}*\n💸 {p['price']} грн"
-            media.append((p['photo'], text))
-            buttons.append(InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{p['name']}"))
-        for m in media:
-            await bot.send_photo(callback.from_user.id, m[0], caption=m[1])
-        await bot.send_message(callback.from_user.id, "Оберіть:", reply_markup=InlineKeyboardMarkup(row_width=2).add(*buttons).add(
+
+    for p in perfumes:
+        text = f"*{p['name']}*\n💸 {p['price']} грн"
+        buttons = InlineKeyboardMarkup(row_width=1).add(
+            InlineKeyboardButton(f"➕ {p['name']}", callback_data=f"add_{p['name']}"),
             InlineKeyboardButton("🔙 Назад до каталогу", callback_data="catalog"),
             InlineKeyboardButton("🏠 Головне меню", callback_data="main_menu")
-        ))
+        )
+        await bot.send_photo(callback.from_user.id, p['photo'], caption=text, reply_markup=buttons)
+
     await callback.answer()
+
 @dp.callback_query_handler(lambda c: c.data == "catalog")
 async def show_catalog(callback: types.CallbackQuery):
     await bot.send_message(callback.from_user.id, "Оберіть категорію парфумів:", reply_markup=catalog_menu)
