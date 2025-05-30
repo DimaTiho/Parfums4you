@@ -68,7 +68,7 @@ user_discounts = {}
 async def how_to_order(message: types.Message):
     instructions = (
         "🛍 *Як зробити замовлення:*\n"
-        "1️⃣ Відкрийте *Каталог* і оберіть парфуми\n"
+        "1️⃣ Відкрийте *Каталог* дочекайтеся поки завантажаться фото і оберіть парфуми\n"
         "2️⃣ Натисніть *Додати в кошик*\n"
         "3️⃣ Перейдіть у *Кошик* та натисніть *Оформити замовлення*\n"
         "4️⃣ Введіть свої дані (ім’я, телефон, місто, доставка)\n"
@@ -81,7 +81,7 @@ async def how_to_order(message: types.Message):
 async def how_to_order_callback(callback: types.CallbackQuery):
     instructions = (
         "🛍 *Як зробити замовлення:*\n"
-        "1️⃣ Відкрийте *Каталог* і оберіть парфуми\n"
+        "1️⃣ Відкрийте *Каталог* дочекайтеся поки завантажаться фото і оберіть парфуми\n"
         "2️⃣ Натисніть *Додати в кошик*\n"
         "3️⃣ Перейдіть у *Кошик* та натисніть *Оформити замовлення*\n"
         "4️⃣ Введіть свої дані (ім’я, телефон, місто, доставка)\n"
@@ -97,12 +97,13 @@ async def how_to_order_callback(callback: types.CallbackQuery):
 async def back_to_main(callback: types.CallbackQuery):
     await bot.send_photo(
     chat_id=callback.message.chat.id,
-    photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",  # заміни на своє зображення
+    photo="https://i.postimg.cc/5yKKfGvC/Screenshot-20250530-190840.jpg",  # заміни на своє зображення
     caption=(
         "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-        "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
+        "🌶 *Ми пропонуємо найкращі масляні аромати по 10 мл, без вмісту спирту !*\n\n"
+        "🌺 У нас ви знайдете брендові жіночі та унісекс парфуми — обрані з любов'ю.\n\n"
         "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-        "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
+        "🎁 Усі охочі можуть скористатися акціями та отримати приємні знижки.\n\n"
         "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
         "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
         ),
@@ -127,10 +128,10 @@ catalog_menu = InlineKeyboardMarkup(inline_keyboard=[
 
 perfume_catalog = {
     "cat_women": [
-        {"name": "Victoria`s Secret Bombshell Isle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Victoria`s Secret Bombshell Isle", "price": 200, "photo": "https://i.postimg.cc/XvZj3SCw/photo-2025-05-30-18-47-56.jpg.","quantity": 1},
         {"name": "Victoria`s Secret Compassion", "price": 200, "photo": "https://i.postimg.cc/c4y5cmzc/photo-2025-05-30-14-53-53-23.jpg.","quantity": 1},
         {"name": "Lattafa Yara Tous", "price": 200, "photo": "https://i.postimg.cc/7PQgNYQM/photo-2025-05-30-14-53-53-14.jpg.","quantity": 1},
-        {"name": "Lattafa Yara Candy", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
+        {"name": "Lattafa Yara Candy", "price": 200, "photo": "https://i.postimg.cc/7h1Pc3Td/photo-2025-05-30-18-47-56-2.jpg.","quantity": 1},
         {"name": "Lattafa Haya", "price": 200, "photo": "https://i.postimg.cc/ydjHcG1W/photo-2025-05-30-14-53-46-3.jpg.","quantity": 1},
         {"name": "Lattafa Noble Blush", "price": 200, "photo": "https://i.postimg.cc/qMyxMHjs/photo-2025-05-30-14-53-53-16.jpg.","quantity": 1},
         {"name": "Lattafa Eclaire", "price": 200, "photo": "https://i.postimg.cc/W4F3TT7j/photo-2025-05-30-14-53-53-18.jpg.","quantity": 1},
@@ -139,7 +140,7 @@ perfume_catalog = {
         {"name": "Giorgio Armani Si Passione", "price": 200, "photo": "https://i.postimg.cc/pVBSV8rV/photo-2025-05-30-14-53-53-9.jpg.","quantity": 1},
         {"name": "Giorgio Armani My Way Nectar", "price": 200, "photo": "https://i.postimg.cc/L5z2hsqK/photo-2025-05-30-14-53-53-6.jpg.","quantity": 1},
         {"name": "Yves Saint Laurent Black Opium", "price": 200, "photo": "https://i.postimg.cc/pL3zMGt9/photo-2025-05-30-14-53-53-2.jpg.","quantity": 1},
-        {"name": "Yves Saint Laurent Libre", "price": 200,  "photo": "https://i.postimg.cc/fRWDTDDp/photo-2025-05-30-14-53-53-7.jpg.","quantity": 1},
+        {"name": "Yves Saint Laurent Libre", "price": 200, "https://i.postimg.cc/fRWDTDDp/photo-2025-05-30-14-53-53-7.jpg.","quantity": 1},
         {"name": "Yves Saint Laurent Mon Paris", "price": 200, "photo": "https://i.postimg.cc/3x8xq2qs/photo-2025-05-30-14-53-43-5.jpg.","quantity": 1},
         {"name": "Haute Fragrance Company Wear Love Everywhere", "price": 200, "photo": "https://i.postimg.cc/WbQQFVGX/photo-2025-05-30-14-53-46-5.jpg.","quantity": 1},
         {"name": "Haute Fragrance Company Devil`s Intrigue", "price": 200, "photo": "https://i.postimg.cc/9MLyKWX2/photo-2025-05-30-14-53-53-13.jpg.","quantity": 1},
@@ -189,16 +190,22 @@ perfume_catalog = {
 
 ],
     "cat_top": [
-        {"name": "Creed Aventus", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Chanel Coco Mademoiselle", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1},
-        {"name": "Maison Francis Kurkdjian Baccarat Rouge", "price": 200, "photo": "https://images.pexels.com/photos/965731/pexels-photo-965731.jpeg?cs=srgb&dl=pexels-valeriya-965731.jpg&fm=jpg&_gl=1*5lwmep*_ga*MTMzNzc3NDI2LjE3NDY4ODA2NzY.*_ga_8JE65Q40S6*czE3NDY4ODA2NzUkbzEkZzEkdDE3NDY4ODA2ODAkajAkbDAkaDA.","quantity": 1}
+        {"name": "Chanel Chance eau Fraiche", "price": 200, "photo": "https://i.postimg.cc/jj5xvK1P/photo-2025-05-30-14-53-53-5.jpg.jpg","quantity": 1},
+        {"name": "Tom Ford Cherry Smoke", "price": 200, "photo": "https://i.postimg.cc/d14bLT6y/photo-2025-05-30-14-53-46-4.jpg.","quantity": 1},
+        {"name": "Tom Ford Lost Cherry", "price": 200, "photo": "https://i.postimg.cc/rFQ7jW2Z/photo-2025-05-30-14-53-53-8.jpg.","quantity": 1},
+        {"name": "Montale Starry Nights", "price": 200, "photo": "https://i.postimg.cc/KzSPB9qX/photo-2025-05-30-14-53-47.jpg.","quantity": 1},
+        {"name": "Montale Intense Cafe", "price": 200, "photo": "https://i.postimg.cc/zv8sfFT5/photo-2025-05-30-14-53-43.jpg.","quantity": 1},
+        {"name": "Montale  Chocolate Greedy", "price": 200, "photo": "https://i.postimg.cc/Bnn1FWJP/photo-2025-05-30-14-53-45-4.jpg.","quantity": 1},
+        {"name": "Carolina Herrera Good Girl Blush", "price": 200, "photo": "https://i.postimg.cc/902DFKxM/photo-2025-05-30-14-53-45-5.jpg.","quantity": 1},
+        {"name": "Carolina Herrera Good Girl Velvet Fatale", "price": 200, "photo": "https://i.postimg.cc/N0zrgycN/photo-2025-05-30-14-53-43-2.jpg.","quantity": 1},
+        {"name": "Montale Roses Musk", "price": 200, "photo": "https://i.postimg.cc/vBby1ydp/photo-2025-05-30-14-53-46-2.jpg.","quantity": 1},
+        {"name": "Montale Fruity", "price": 200, "photo": "https://i.postimg.cc/3RVy5WGg/photo-2025-05-30-14-53-43-3.jpg.","quantity": 1},
+        {"name": "Billie Eilish Eilish", "price": 200, "photo": "https://i.postimg.cc/Y2RV3g1G/photo-2025-05-30-14-53-44-3.jpg.","quantity": 1},
+        {"name": "Labcome La Vie Est Belle", "price": 200, "photo": "https://i.postimg.cc/QdT0RWWq/photo-2025-05-30-14-53-44-6.jpg.","quantity": 1},
+        {"name": "Escada Candy Love", "price": 200, "photo": "https://i.postimg.cc/XvV8z1Kw/photo-2025-05-30-14-53-53-21.jpg.","quantity": 1}
     ]
 }
+
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
 
 @dp.callback_query_handler(lambda c: c.data.startswith("cat_"))
@@ -748,14 +755,15 @@ async def handle_order_confirmation(callback: types.CallbackQuery, state: FSMCon
 async def handle_start(message: types.Message):
     await bot.send_photo(
         chat_id=message.chat.id,
-        photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
+        photo="https://i.postimg.cc/5yKKfGvC/Screenshot-20250530-190840.jpg.jpg",
         caption=(
             "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-            "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
-            "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-            "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
-            "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
-            "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції.\n\n"
+        "🌶 *Ми пропонуємо найкращі масляні аромати по 10 мл, без вмісту спирту !*\n\n"
+        "🌺 У нас ви знайдете брендові жіночі та унісекс парфуми — обрані з любов'ю.\n\n"
+        "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
+        "🎁 Усі охочі можуть скористатися акціями та отримати приємні знижки.\n\n"
+        "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
+        "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
         ),
         reply_markup=main_menu
     )
@@ -764,12 +772,13 @@ async def handle_start(message: types.Message):
 async def auto_start_from_any_message(message: types.Message):
     await bot.send_photo(
         chat_id=message.chat.id,
-        photo="https://fleurparfum.net.ua/images/blog/shleifovie-duhi-woman.jpg.pagespeed.ce.3PKNQ9Vn2Z.jpg",
+        photo="https://i.postimg.cc/5yKKfGvC/Screenshot-20250530-190840.jpg.jpg",
         caption=(
         "🧴 *Ласкаво просимо до нашого ароматного світу!*\n\n"
-        "🌺 У нас ви знайдете брендові жіночі, чоловічі та унісекс парфуми — обрані з любов'ю.\n\n"
+        "🌶 *Ми пропонуємо найкращі масляні аромати по 10 мл, без вмісту спирту !*\n\n"
+        "🌺 У нас ви знайдете брендові жіночі та унісекс парфуми — обрані з любов'ю.\n\n"
         "💸 Ми пропонуємо найкращі послуги та щедрі знижки для нових і постійних клієнтів.\n\n"
-        "🎁 Усі охочі можуть скористатися акціями та отримати приємні подарунки.\n\n"
+        "🎁 Усі охочі можуть скористатися акціями та отримати приємні знижки.\n\n"
         "🚚 Відправка Новою Поштою/Укрпоштою. Доставка - за наш рахунок при великому замовленні.\n\n"
         "👇 Оберіть розділ нижче, щоб почати замовлення або переглянути наші пропозиції."
         ),
